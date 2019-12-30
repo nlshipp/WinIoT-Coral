@@ -189,6 +189,7 @@ ImxPwmEvtDevicePrepareHardware (
         DEVPROP_TYPE_STRING,
         (ULONG)wlen,
         schematicNameW);
+
     if (!NT_SUCCESS(status)) {
         IMXPWM_LOG_ERROR(
             "IoSetDeviceInterfacePropertyData(DeviceInterface-SchematicName) failed with error %!STATUS!",
