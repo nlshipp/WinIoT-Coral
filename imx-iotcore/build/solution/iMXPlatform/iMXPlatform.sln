@@ -123,13 +123,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imxi2c", "..\..\..\driver\i
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imxuart", "..\..\..\driver\serial\imxuart\imxuart.vcxproj", "{50577040-51B6-45E7-8D19-B5CB1A8B2943}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wm8731Lcodec", "..\..\..\driver\audio\codec\wm8731L\wm8731Lcodec.vcxproj", "{AF9FA396-99BD-4CB9-B597-20B8C24AF9EE}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "audio-common", "..\..\..\driver\audio\controller\audio-common\audio-common.vcxproj", "{17947706-7E72-4199-BF06-ED8A00CD9AD9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imxaud", "..\..\..\driver\audio\controller\imxaud\imxaud.vcxproj", "{6D4216C2-79C5-4CFB-8EDE-2C57195C0385}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wm8731Lcodec", "..\..\..\driver\audio\codec\wm8731L\wm8731Lcodec.vcxproj", "{AF9FA396-99BD-4CB9-B597-20B8C24AF9EE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wm8960codec", "..\..\..\driver\audio\codec\wm8960\wm8960codec.vcxproj", "{28C3C494-2623-4DF5-B4AE-B14AB3341361}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wm8962codec", "..\..\..\driver\audio\codec\wm8962\wm8962codec.vcxproj", "{D309B5B8-5F56-4720-8F90-FDB38DB4314C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "alc5645codec", "..\..\..\driver\audio\codec\alc5645\alc5645codec.vcxproj", "{2E83CD35-2CA0-4D40-A200-22CD96A36B15}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sabre_iMX6Q_1GB", "..\..\board\Sabre_iMX6Q_1GB\Package\Sabre_iMX6Q_1GB_Package.vcxproj", "{B4A86B85-C815-4CD9-B27A-9E0F892EF909}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -192,8 +196,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sabre_iMX6DL_1GB", "..\..\b
 		{3CEF2507-27F7-4669-B8EB-DF558E1DFCEB} = {3CEF2507-27F7-4669-B8EB-DF558E1DFCEB}
 		{7613DBC0-CD26-405E-AD57-FCD7B247248F} = {7613DBC0-CD26-405E-AD57-FCD7B247248F}
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wm8960codec", "..\..\..\driver\audio\codec\wm8960\wm8960codec.vcxproj", "{28C3C494-2623-4DF5-B4AE-B14AB3341361}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Arm64CRTRuntime", "..\..\..\components\Arm64CRTRuntime\Arm64CRTRuntime.vcxproj", "{6C77A306-AE79-4757-8E56-F291FFFD9176}"
 EndProject
@@ -646,6 +648,18 @@ Global
 		{2D497645-7F3B-453E-92C4-894CE7ABB109}.Release|ARM64.ActiveCfg = Release|ARM64
 		{2D497645-7F3B-453E-92C4-894CE7ABB109}.Release|ARM64.Build.0 = Release|ARM64
 		{2D497645-7F3B-453E-92C4-894CE7ABB109}.Release|ARM64.Deploy.0 = Release|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM.ActiveCfg = Debug|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM.Build.0 = Debug|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM.Deploy.0 = Debug|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM64.Build.0 = Debug|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM.ActiveCfg = Release|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM.Build.0 = Release|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM.Deploy.0 = Release|ARM
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM64.ActiveCfg = Release|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM64.Build.0 = Release|ARM64
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15}.Release|ARM64.Deploy.0 = Release|ARM64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -694,6 +708,7 @@ Global
 		{5F057F40-F413-4D13-A267-7C987E4E8683} = {67E6C703-9D68-4009-BAEE-382D1058417D}
 		{2BE4D87B-CC81-43AB-8A6D-E3A90161A1E7} = {67E6C703-9D68-4009-BAEE-382D1058417D}
 		{2D497645-7F3B-453E-92C4-894CE7ABB109} = {FA85460F-2966-4D55-8AAC-BA0C51E2D3B9}
+		{2E83CD35-2CA0-4D40-A200-22CD96A36B15} = {67E6C703-9D68-4009-BAEE-382D1058417D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7B40170D-C677-4C90-B16F-C839F69822FA}
