@@ -101,9 +101,9 @@ void AddMultiCast(PMP_ADAPTER pAdapter, UCHAR *pAddr)
     UCHAR HashValue = 0;
     HashValue = CalculateHashValue( pAddr );
     if (HashValue > 31) {
-        pAdapter->ENETRegBase->GAUR = 1 << (HashValue - 32);
+        pAdapter->ENETRegBase->GAUR |= 1 << (HashValue - 32);
     } else {
-        pAdapter->ENETRegBase->GALR = 1 << HashValue;
+        pAdapter->ENETRegBase->GALR |= 1 << HashValue;
     }
 }
 

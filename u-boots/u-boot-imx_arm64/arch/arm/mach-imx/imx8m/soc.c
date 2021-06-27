@@ -62,7 +62,7 @@ void enable_tzc380(void)
 	/* Enable TZASC and lock setting */
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_EN);
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_EN_LOCK);
-#ifdef CONFIG_IMX8MM
+#if defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
 	setbits_le32(&gpr->gpr[10], GPR_TZASC_SWAP_ID);
 #endif
 
@@ -94,6 +94,7 @@ static struct mm_region imx8m_mem_map[] = {
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_OUTER_SHARE
 	}, {
+		/* CAAM */
 		.virt = 0x100000UL,
 		.phys = 0x100000UL,
 		.size = 0x8000UL,
@@ -101,6 +102,7 @@ static struct mm_region imx8m_mem_map[] = {
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
 	}, {
+		/* TCM */
 		.virt = 0x7C0000UL,
 		.phys = 0x7C0000UL,
 		.size = 0x80000UL,
@@ -197,6 +199,23 @@ static u32 get_cpu_variant_type(u32 type)
 				return MXC_CPU_IMX8MML;
 			break;
 		}
+	} else if (type == MXC_CPU_IMX8MN) {
+		switch (value & 0x3) {
+		case 2:
+			if (value & 0x1000000)
+				return MXC_CPU_IMX8MNDL;
+			else
+				return MXC_CPU_IMX8MND;
+		case 3:
+			if (value & 0x1000000)
+				return MXC_CPU_IMX8MNSL;
+			else
+				return MXC_CPU_IMX8MNS;
+		default:
+			if (value & 0x1000000)
+				return MXC_CPU_IMX8MNL;
+			break;
+		}
 	}
 
 	return type;
@@ -212,8 +231,12 @@ u32 get_cpu_rev(void)
 
 	reg &= 0xff;
 
-	/* iMX8MM */
-	 if (major_low == 0x41) {
+	/* iMX8MN */
+	 if (major_low == 0x42) {
+		type = get_cpu_variant_type(MXC_CPU_IMX8MN);
+		return (type << 12) | reg;
+	 } else if (major_low == 0x41) {
+		/* iMX8MM */
 		type = get_cpu_variant_type(MXC_CPU_IMX8MM);
 		return (type << 12) | reg;
 	} else {
@@ -270,7 +293,8 @@ int arch_cpu_init(void)
 		clock_init();
 		imx_set_wdog_powerdown(false);
 
-		if (is_imx8md() || is_imx8mmd() || is_imx8mmdl() || is_imx8mms() || is_imx8mmsl()) {
+		if (is_imx8md() || is_imx8mmd() || is_imx8mmdl() || is_imx8mms() || is_imx8mmsl() ||
+			is_imx8mnd() || is_imx8mndl() || is_imx8mns() || is_imx8mnsl()) {
 			/* Power down cpu core 1, 2 and 3 for iMX8M Dual core or Single core */
 			struct pgc_reg *pgc_core1 = (struct pgc_reg *)(GPC_BASE_ADDR + 0x840);
 			struct pgc_reg *pgc_core2 = (struct pgc_reg *)(GPC_BASE_ADDR + 0x880);
@@ -279,7 +303,7 @@ int arch_cpu_init(void)
 
 			writel(0x1, &pgc_core2->pgcr);
 			writel(0x1, &pgc_core3->pgcr);
-			if (is_imx8mms() || is_imx8mmsl()) {
+			if (is_imx8mms() || is_imx8mmsl() || is_imx8mns() || is_imx8mnsl()) {
 				writel(0x1, &pgc_core1->pgcr);
 				writel(0xE, &gpc->cpu_pgc_dn_trg);
 			} else {
@@ -305,6 +329,14 @@ int arch_cpu_init(void)
 
 	return 0;
 }
+
+#ifdef CONFIG_IMX8MN
+enum boot_device get_boot_device(void)
+{
+     // TODO
+     return SD1_BOOT + 1;
+}
+#endif
 
 bool is_usb_boot(void)
 {
@@ -515,6 +547,15 @@ static int disable_vpu_nodes(void *blob)
 
 }
 
+int disable_gpu_nodes(void *blob)
+{
+	const char *nodes_path_8mn[] = {
+		"/gpu@38000000"
+	};
+
+	return disable_fdt_nodes(blob, nodes_path_8mn, ARRAY_SIZE(nodes_path_8mn));
+}
+
 static int disable_cpu_nodes(void *blob, u32 disabled_cores)
 {
 	const char *nodes_path[] = {
@@ -636,6 +677,45 @@ usb_modify_speed:
 		disable_cpu_nodes(blob, 2);
 	else if (is_imx8mms() || is_imx8mmsl())
 		disable_cpu_nodes(blob, 3);
+
+#elif defined(CONFIG_IMX8MN)
+	if (is_imx8mnl() || is_imx8mndl() ||  is_imx8mnsl())
+		disable_gpu_nodes(blob);
+
+	if (is_imx8mnd() || is_imx8mndl())
+		disable_cpu_nodes(blob, 2);
+	else if (is_imx8mns() || is_imx8mnsl())
+		disable_cpu_nodes(blob, 3);
+#ifdef CONFIG_IMX8MN_FORCE_NOM_SOC
+	/* Disable the DVFS by removing 1.4Ghz and 1.5Ghz operating-points*/
+	int rc;
+	int nodeoff;
+	static const char * const nodes_path = "/cpus/cpu@0";
+	u32 val[] = {1200000, 850000};
+
+	nodeoff = fdt_path_offset(blob, nodes_path);
+	if (nodeoff < 0) {
+		printf("Unable to find node %s, err=%s\n",
+		       nodes_path, fdt_strerror(nodeoff));
+		return nodeoff;
+	}
+
+	printf("Found %s node\n", nodes_path);
+
+	val[0] = cpu_to_fdt32(val[0]);
+	val[1] = cpu_to_fdt32(val[1]);
+	rc = fdt_setprop(blob, nodeoff, "operating-points", &val, 2 * sizeof(u32));
+	if (rc) {
+		printf("Unable to update operating-points for node %s, err=%s\n",
+		       nodes_path, fdt_strerror(rc));
+		return rc;
+	}
+
+	printf("Update %s:%s\n", nodes_path,
+	       "operating-points");
+
+#endif /* CONFIG_IMX8MN_FORCE_NOM_SOC */
+
 #endif
 
 	return ft_add_optee_node(blob, bd);
@@ -740,7 +820,7 @@ int imx8m_usb_power(int usb_id, bool on)
 
 void nxp_tmu_arch_init(void *reg_base)
 {
-	if (is_imx8mm()) {
+	if (is_imx8mm() || is_imx8mn()) {
 		/* Load TCALIV and TASR from fuses */
 		struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
 		struct fuse_bank *bank = &ocotp->bank[3];

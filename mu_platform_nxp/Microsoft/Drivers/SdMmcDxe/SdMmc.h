@@ -23,9 +23,9 @@
 // dump to the terminal.
 #define SDMMC_BENCHMARK_IO        0
 
-// Lower bound of 2s poll wait time (200 x 10ms)
-#define SDMMC_POLL_WAIT_COUNT     200
-#define SDMMC_POLL_WAIT_TIME_US   10000
+// Lower bound of 2s poll wait time (2000 x 1ms)
+#define SDMMC_POLL_WAIT_COUNT     2000
+#define SDMMC_POLL_WAIT_TIME_US   1000
 
 // The period at which to check the presence state of each card on each
 // registered SDHC instance.

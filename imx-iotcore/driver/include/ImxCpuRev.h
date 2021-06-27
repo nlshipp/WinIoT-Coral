@@ -44,6 +44,7 @@ typedef enum _IMX_CPU {
     IMX_CPU_MX7D = 0x72,
     IMX_CPU_MX8MQ = 0x82,
     IMX_CPU_MX8MM = 0x85,
+    IMX_CPU_MX8MN = 0x86,
     IMX_CPU_MX7ULP = 0xE1, // dummy value
 } IMX_CPU;
 
@@ -252,6 +253,9 @@ static inline UINT32 _Imx8GetCpuRevHelper (void *AnatopBase)
                       (ULONG *)Add2Ptr(AnatopBase, ANATOP_DIGPROGMM));
         if ((reg2 & 0x00ffff00) == 0x00824100) {
             type = IMX_CPU_MX8MM;
+            reg = reg2;
+        } else if ((reg2 & 0x00ffff00) == 0x00824200) {
+            type = IMX_CPU_MX8MN;
             reg = reg2;
         }
     }

@@ -49,7 +49,8 @@
   "i.MX8M MINI Evaluation Kit\0"     /* Product Name */  \
   "1.0\0"                            /* Version */       \
   "System Serial #\0"                /* Serial number */ \
-  "MCIMX8M-MINI-EVK\0"               /* SKUNumber */
+  "MCIMX8M-MINI-EVK\0"               /* SKUNumber */     \
+  "MCIMX8M\0"                        /* System Family */
 
 #define TYPE2_STRINGS                                     \
   "NXP\0"                            /* Manufacturer */   \
@@ -225,7 +226,7 @@ STATIC CONST ARM_TYPE1 mArmDefaultType1 = {
     { 0x607C6018, 0x4B99, 0x7CE2, { 0x64,0x0F,0x6A,0xB7,0x21,0x49,0xD4,0x6C }},    //UUID
     SystemWakeupTypePowerSwitch,     //Wakeup type
     5,     //SKU
-    0,     //Family
+    6,     //Family
   },
   // Text strings (unformatted)
   TYPE1_STRINGS

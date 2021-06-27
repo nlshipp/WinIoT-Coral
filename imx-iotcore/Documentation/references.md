@@ -12,6 +12,7 @@ The quick start guides contain basic information on the board and setting it up.
 * [i.MX 7Dual SABRE-SD Quick Start Guide (SABRESDBIMX7DUALQSG)](http://www.nxp.com/docs/en/user-guide/SABRESDBIMX7DUALQSG.pdf)
 * [i.MX 8M Quad Evaluation Kit Quick Start Guide (IMX8MQUADEVKQSG)](https://www.nxp.com/docs/en/user-guide/IMX8MQUADEVKQSG.pdf)
 * [i.MX 8M Mini Evaluation Kit Quick Start Guide (8MMINIEVKQSG)](https://www.nxp.com/docs/en/quick-reference-guide/8MMINIEVKQSG.PDF)
+* [i.MX 8M Nano EVK Quick Start Guide(IMX-8M-Nano-QSG)](https://www.nxp.com/docs/en/quick-reference-guide/IMX-8M-Nano-QSG.pdf)
 
 Documentation is available online at [nxp.com](http://www.nxp.com)
 * i.MX 6 information is at [http://nxp.com/iMX6series](http://nxp.com/iMX6series)

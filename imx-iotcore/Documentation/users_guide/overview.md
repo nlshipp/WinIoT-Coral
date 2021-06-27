@@ -9,11 +9,11 @@ document-number: IMXWGU
 Overview {#overview}
 ====
 
-This chapter describes the process of building and installing the Windows 10 IoT OS BSP (Board Support Package) on the i.MX platform. It also covers special i.MX
+User's guide describes the process of building and installing the Windows 10 IoT OS BSP (Board Support Package) for the i.MX platform. It also covers special i.MX
 features and how to use them.
 
-The chapter also lists the steps to run the i.MX platform, including board DIP switch
-settings, and instructions on configuring and using the U-Boot bootloader.
+Guide also lists the steps to run the i.MX platform, including board DIP switch
+settings, and instructions on the usage and configuration of U-Boot bootloader.
 
 Features covered in this guide may be specific to particular boards or SOCs. For the capabilities
 of a particular board or SOC, see the *i.MX Windows 10 IoT Release Notes*

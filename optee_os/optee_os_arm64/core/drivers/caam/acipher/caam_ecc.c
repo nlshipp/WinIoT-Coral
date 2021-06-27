@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    caam_ecc.c
  *
@@ -12,9 +12,9 @@
 #include <mm/core_memprot.h>
 #include <tee/cache.h>
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_acipher.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_acipher.h>
 
 /* Local includes */
 #include "local.h"
@@ -23,6 +23,7 @@
 
 /* Utils includes */
 #include "utils_mem.h"
+#include "utils_status.h"
 
 /*
  * Debug Macros
@@ -288,9 +289,13 @@ static TEE_Result do_gen_keypair(struct ecc_keypair *key, size_t key_size)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc = NULL;
-	uint8_t desclen    = 1;
+	uint8_t desclen    = 0;
 
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_KEY_GEN		8
+#else
 #define MAX_DESC_KEY_GEN		6
+#endif
 
 	ECC_TRACE("Generate Keypair of %d bits", key_size);
 
@@ -325,11 +330,15 @@ static TEE_Result do_gen_keypair(struct ecc_keypair *key, size_t key_size)
 	/*
 	 * Build the descriptor using Predifined ECC curve
 	 */
-	desc[desclen++] = PDB_PKGEN_PD1 | PDB_ECC_ECDSEL(curve);
-	desc[desclen++] = d.paddr;
-	desc[desclen++] = xy.paddr;
-	desc[desclen++] = PK_KEYPAIR_GEN(ECC);
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, (PDB_PKGEN_PD1 | PDB_ECC_ECDSEL(curve)));
+	desc_add_ptr(desc, d.paddr);
+	desc_add_ptr(desc, xy.paddr);
+	desc_add_word(desc, PK_KEYPAIR_GEN(ECC));
+
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	ECC_DUMPDESC(desc);
 	jobctx.desc = desc;
@@ -360,7 +369,7 @@ static TEE_Result do_gen_keypair(struct ecc_keypair *key, size_t key_size)
 		ret = TEE_SUCCESS;
 	} else {
 		ECC_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 
@@ -384,7 +393,7 @@ exit_gen_keypair:
  * @retval TEE_ERROR_SHORT_BUFFER      Result buffer too short
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_sign(struct imxcrypt_sign_data *sdata)
+static TEE_Result do_sign(struct nxpcrypt_sign_data *sdata)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -403,9 +412,13 @@ static TEE_Result do_sign(struct imxcrypt_sign_data *sdata)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc = NULL;
-	uint8_t desclen    = 1;
+	uint8_t desclen    = 0;
 
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_SIGN		13
+#else
 #define MAX_DESC_SIGN		9
+#endif
 
 	ECC_TRACE("ECC Signature");
 
@@ -459,20 +472,25 @@ static TEE_Result do_sign(struct imxcrypt_sign_data *sdata)
 	/*
 	 * Build the descriptor using Predifined ECC curve
 	 */
-	desc[desclen++] = PDB_PKSIGN_PD1 | PDB_ECC_ECDSEL(curve);
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, PDB_PKSIGN_PD1 | PDB_ECC_ECDSEL(curve));
 	/* Secret key */
-	desc[desclen++] = ecckey.d.paddr;
+	desc_add_ptr(desc, ecckey.d.paddr);
 	/* Input message */
-	desc[desclen++] = paddr_msg;
+	desc_add_ptr(desc, paddr_msg);
 	/* Signature 1st part */
-	desc[desclen++] = sign_align.paddr;
+	desc_add_ptr(desc, sign_align.paddr);
 	/* Signature 2nd part */
-	desc[desclen++] = sign_align.paddr + sdata->size_sec;
+	desc_add_ptr(desc, (sign_align.paddr + sdata->size_sec));
 	/* Message length */
-	desc[desclen++] = sdata->message.length;
+	desc_add_word(desc, sdata->message.length);
 
-	desc[desclen++] = DSA_SIGN(ECC);
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+
+	desc_add_word(desc, DSA_SIGN(ECC));
+
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	ECC_DUMPDESC(desc);
 	jobctx.desc = desc;
@@ -498,7 +516,7 @@ static TEE_Result do_sign(struct imxcrypt_sign_data *sdata)
 		ret = TEE_SUCCESS;
 	} else {
 		ECC_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 
@@ -524,7 +542,7 @@ exit_sign:
  * @retval TEE_ERROR_SIGNATURE_INVALID Signature is not valid
  * @retval TEE_ERROR_BAD_PARAMETERS    Bad parameters
  */
-static TEE_Result do_verify(struct imxcrypt_sign_data *sdata)
+static TEE_Result do_verify(struct nxpcrypt_sign_data *sdata)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -540,9 +558,13 @@ static TEE_Result do_verify(struct imxcrypt_sign_data *sdata)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc = NULL;
-	uint8_t desclen    = 1;
+	uint8_t desclen    = 0;
 
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_VERIFY		15
+#else
 #define MAX_DESC_VERIFY		10
+#endif
 
 	ECC_TRACE("ECC Verify");
 
@@ -589,22 +611,25 @@ static TEE_Result do_verify(struct imxcrypt_sign_data *sdata)
 	/*
 	 * Build the descriptor using Predifined ECC curve
 	 */
-	desc[desclen++] = PDB_PKVERIFY_PD1 | PDB_ECC_ECDSEL(curve);
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, PDB_PKVERIFY_PD1 | PDB_ECC_ECDSEL(curve));
 	/* Public key */
-	desc[desclen++] = ecckey.xy.paddr;
+	desc_add_ptr(desc, ecckey.xy.paddr);
 	/* Input message */
-	desc[desclen++] = paddr_msg;
+	desc_add_ptr(desc, paddr_msg);
 	/* Signature 1st part */
-	desc[desclen++] = paddr_sign;
+	desc_add_ptr(desc, paddr_sign);
 	/* Signature 2nd part */
-	desc[desclen++] = paddr_sign + sdata->size_sec;
+	desc_add_ptr(desc, (paddr_sign + sdata->size_sec));
 	/* Temporary buffer */
-	desc[desclen++] = tmp.paddr;
+	desc_add_ptr(desc, tmp.paddr);
 	/* Message length */
-	desc[desclen++] = sdata->message.length;
+	desc_add_word(desc, sdata->message.length);
 
-	desc[desclen++] = DSA_VERIFY(ECC);
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desc_add_word(desc, DSA_VERIFY(ECC));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	ECC_DUMPDESC(desc);
 	jobctx.desc = desc;
@@ -621,7 +646,7 @@ static TEE_Result do_verify(struct imxcrypt_sign_data *sdata)
 		ret = TEE_ERROR_SIGNATURE_INVALID;
 	} else if (retstatus != CAAM_NO_ERROR) {
 		ECC_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	} else
 		ret = TEE_SUCCESS;
 
@@ -645,7 +670,7 @@ exit_verify:
  * @retval TEE_ERROR_OUT_OF_MEMORY     Out of memory
  * @retval TEE_ERROR_SHORT_BUFFER      Result buffer too short
  */
-static TEE_Result do_shared_secret(struct imxcrypt_secret_data *sdata)
+static TEE_Result do_shared_secret(struct nxpcrypt_secret_data *sdata)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -661,10 +686,13 @@ static TEE_Result do_shared_secret(struct imxcrypt_secret_data *sdata)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc = NULL;
-	uint8_t desclen    = 1;
+	uint8_t desclen    = 0;
 
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_SHARED		10
+#else
 #define MAX_DESC_SHARED		7
-
+#endif
 	ECC_TRACE("ECC Shared Secret");
 
 	/* Verify first if the curve is supported */
@@ -708,16 +736,19 @@ static TEE_Result do_shared_secret(struct imxcrypt_secret_data *sdata)
 	/*
 	 * Build the descriptor using Predifined ECC curve
 	 */
-	desc[desclen++] = PDB_SHARED_SECRET_PD1 | PDB_ECC_ECDSEL(curve);
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, PDB_SHARED_SECRET_PD1 | PDB_ECC_ECDSEL(curve));
 	/* Public key */
-	desc[desclen++] = ecckey.xy.paddr;
+	desc_add_ptr(desc, ecckey.xy.paddr);
 	/* Private key */
-	desc[desclen++] = ecckey.d.paddr;
+	desc_add_ptr(desc, ecckey.d.paddr);
 	/* Output secret */
-	desc[desclen++] = secret_align.paddr;
+	desc_add_ptr(desc, secret_align.paddr);
 
-	desc[desclen++] = SHARED_SECRET(ECC);
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desc_add_word(desc, SHARED_SECRET(ECC));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	ECC_DUMPDESC(desc);
 	jobctx.desc = desc;
@@ -741,7 +772,7 @@ static TEE_Result do_shared_secret(struct imxcrypt_secret_data *sdata)
 		ret = TEE_SUCCESS;
 	} else {
 		ECC_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_shared:
@@ -757,7 +788,7 @@ exit_shared:
 /**
  * @brief   Registration of the ECC Driver
  */
-struct imxcrypt_ecc driver_ecc = {
+struct nxpcrypt_ecc driver_ecc = {
 	.alloc_keypair   = &do_allocate_keypair,
 	.alloc_publickey = &do_allocate_publickey,
 	.free_publickey  = &do_free_publickey,
@@ -780,7 +811,7 @@ enum CAAM_Status caam_ecc_init(vaddr_t ctrl_addr __unused)
 {
 	enum CAAM_Status retstatus = CAAM_FAILURE;
 
-	if (imxcrypt_register(CRYPTO_ECC, &driver_ecc) == 0)
+	if (nxpcrypt_register(CRYPTO_ECC, &driver_ecc) == 0)
 		retstatus = CAAM_NO_ERROR;
 
 	return retstatus;

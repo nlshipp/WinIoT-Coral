@@ -110,6 +110,7 @@
       set OEMName=$(OEMName)
       call ..\..\..\tools\BuildBSP.bat iMX8 NXPEVK_iMX8M_4GB
       call ..\..\..\tools\BuildBSP.bat iMX8 NXPEVK_iMX8M_Mini_2GB
+      call ..\..\..\tools\BuildBSP.bat iMX8 EVK_iMX8MN_2GB
     </NMakeBuildCommandLine>
     <NMakeReBuildCommandLine>
       set Configuration=$(Configuration)
@@ -119,6 +120,7 @@
       set OEMName=$(OEMName)
       call ..\..\..\tools\BuildBSP.bat iMX8 NXPEVK_iMX8M_4GB
       call ..\..\..\tools\BuildBSP.bat iMX8 NXPEVK_iMX8M_Mini_2GB
+      call ..\..\..\tools\BuildBSP.bat iMX8 EVK_iMX8MN_2GB
     </NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeCleanCommandLine>

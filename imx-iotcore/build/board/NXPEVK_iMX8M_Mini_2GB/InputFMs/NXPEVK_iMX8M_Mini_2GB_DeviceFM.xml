@@ -76,6 +76,21 @@
           <FeatureID>IMX_DRIVERS</FeatureID>
         </FeatureIDs>
       </PackageFile>
+      <PackageFile Path="%BSPPKG_DIR%" Name="NXP.iMX.imxvpukm.cab">
+        <FeatureIDs>
+          <FeatureID>IMX_DRIVERS</FeatureID>
+        </FeatureIDs>
+      </PackageFile>
+      <PackageFile Path="%BSPPKG_DIR%" Name="NXP.iMX.imxUcmTcpciCxClient.cab">
+        <FeatureIDs>
+          <FeatureID>IMX_DRIVERS</FeatureID>
+        </FeatureIDs>
+      </PackageFile>
+	  <PackageFile Path="%BSPPKG_DIR%" Name="NXP.Appx.DefaultCoreArm64.cab">
+        <FeatureIDs>
+          <FeatureID>APPX_DEFAULTCOREARM64</FeatureID>
+        </FeatureIDs>
+      </PackageFile>
     </OEM>
     <OEMFeatureGroups />
   </Features>

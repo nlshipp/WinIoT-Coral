@@ -1,4 +1,4 @@
-Basic board setup {#boot-switch}
+Basic Board Setup {#boot-switch}
 =======
 
 | Feature              |   MCIMX6Q-SDB/SDP      |      MCIMX6QP-SDB      |     MCIMX6DL-SDP       |
@@ -29,14 +29,14 @@ Basic board setup {#boot-switch}
 | SD card boot DIP cfg | ![DIP switch configuration](images/boards/imx6ull_bs.png "DIP switch configuration"){width=3cm}| ![DIP switch configuration](images/boards/imx6ull_bs.png "DIP switch configuration"){width=3cm} |
 | eMMC boot DIP cfg    | N/A                  | N/A                  |
 
-| Feature              |    MCIMX8M-EVK       |   8MMINILPD4-EVK      |
-|:---------------------|:--------------------:|:---------------------:|
-| BSP name             | NXPEVK_IMX8M_4GB     | NXPEVK_IMX8M_Mini_2GB |
-| Debug UART*          | J1701                | J901                  |
-| Default display      | J1001 (HDMI)         | J801 (MIPI DSI)       |
-| SD card boot slot    | J1601**              | J701**                |
-| SD card boot DIP cfg | ![DIP switch configuration](images/boards/imx8mq_bs_sd.png "DIP switch configuration"){width=3cm}| ![DIP switch configuration](images/boards/imx8mm_bs_sd.png "DIP switch configuration"){width=3cm}|
-| eMMC boot DIP cfg    |       N/A            |        N/A            |
+| Feature              |    MCIMX8M-EVK       |   8MMINILPD4-EVK      |   8MNANOD4-EVK        |
+|:---------------------|:--------------------:|:---------------------:|:---------------------:|
+| BSP name             | NXPEVK_IMX8M_4GB     | NXPEVK_IMX8M_Mini_2GB | EVK_IMX8MN_2GB        |
+| Debug UART*          | J1701                | J901                  | J901                  |
+| Default display      | J1001 (HDMI)         | J801 (MIPI DSI)       | J801 (MIPI DSI)       |
+| SD card boot slot    | J1601**              | J701**                | J701**                |
+| SD card boot DIP cfg | ![DIP switch configuration](images/boards/imx8mq_bs_sd.png "DIP switch configuration"){width=3cm}| ![DIP switch configuration](images/boards/imx8mm_bs_sd.png "DIP switch configuration"){width=3cm}| ![DIP switch configuration](images/boards/imx8mm_bs_sd.png "DIP switch configuration"){width=3cm}|
+| eMMC boot DIP cfg    |       N/A            |        N/A            |        N/A            |
 
 | Legend | Meaning                                                                       |
 |:-------|:------------------------------------------------------------------------------|

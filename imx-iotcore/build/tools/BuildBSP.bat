@@ -217,6 +217,11 @@ copy %BUILD_ROOT%\imxaud\* %PKG_ROOT%\Audio\ >NUL
 if errorlevel 1 (set FAILURE=imxaud & goto ERROR)
 copy %REPO_ROOT%\driver\audio\controller\imxaud\imxaud.wm.xml %PKG_ROOT%\Audio\ >NUL
 
+mkdir %PKG_ROOT%\Display >NUL 2>NUL
+copy %BUILD_ROOT%\imxdod\* %PKG_ROOT%\Display\ >NUL
+if errorlevel 1 (set FAILURE=imxdod & goto ERROR)
+copy %REPO_ROOT%\driver\video\imxdod\imxdod.wm.xml %PKG_ROOT%\Display\ >NUL
+
 mkdir %PKG_ROOT%\GPIO >NUL 2>NUL
 copy %BUILD_ROOT%\imxgpio\* %PKG_ROOT%\GPIO\ >NUL
 if errorlevel 1 (set FAILURE=imxgpio & goto ERROR)
@@ -257,12 +262,32 @@ copy %BUILD_ROOT%\OpteeTrEE\* %PKG_ROOT%\OPTEE\ >NUL
 if errorlevel 1 (set FAILURE=OpteeTrEE & goto ERROR)
 copy %REPO_ROOT%\driver\TrEE\TrEE\OpteeTrEE.wm.xml %PKG_ROOT%\OPTEE\ >NUL
 
-:: Copy Components
-echo Copying components to %PKG_ROOT%
-mkdir %PKG_ROOT%\Arm64CrtRuntime >NUL 2>NUL
-copy %BUILD_ROOT%\Arm64CrtRuntime\* %PKG_ROOT%\Arm64CrtRuntime\ >NUL
-if errorlevel 1 (set FAILURE=Arm64CrtRuntime & goto ERROR)
-copy %REPO_ROOT%\components\Arm64CrtRuntime\Arm64CrtRuntime.wm.xml %PKG_ROOT%\Arm64CrtRuntime\ >NUL
+:: Copy VPU stuff
+mkdir %PKG_ROOT%\imxvpukm >NUL 2>NUL
+copy %BUILD_ROOT%\imxvpukm\* %PKG_ROOT%\imxvpukm\ >NUL
+if errorlevel 1 (set FAILURE=imxvpukm & goto ERROR)
+copy %REPO_ROOT%\driver\video\imxvpukm\imxvpukm.wm.xml %PKG_ROOT%\imxvpukm\ >NUL
+
+mkdir %PKG_ROOT%\imxvpumft >NUL 2>NUL
+copy %BUILD_ROOT%\imxvpumft\imxvpumft.dll %PKG_ROOT%\imxvpumft\ >NUL
+if errorlevel 1 (set FAILURE=imxvpumft & goto ERROR)
+
+mkdir %PKG_ROOT%\imxomxg1 >NUL 2>NUL
+copy %BUILD_ROOT%\imxomxg1\imxomxg1.dll %PKG_ROOT%\imxomxg1\ >NUL
+if errorlevel 1 (set FAILURE=imxomxg1 & goto ERROR)
+
+mkdir %PKG_ROOT%\imxomxg2 >NUL 2>NUL
+copy %BUILD_ROOT%\imxomxg2\imxomxg2.dll %PKG_ROOT%\imxomxg2\ >NUL
+if errorlevel 1 (set FAILURE=imxomxg2 & goto ERROR)
+
+mkdir %PKG_ROOT%\imx-vpu-dwl >NUL 2>NUL
+copy %BUILD_ROOT%\imx-vpu-dwl\imx-vpu-dwl.dll %PKG_ROOT%\imx-vpu-dwl\ >NUL
+if errorlevel 1 (set FAILURE=imx-vpu-dwl & goto ERROR)
+
+mkdir %PKG_ROOT%\USB >NUL 2>NUL
+copy %BUILD_ROOT%\imxUcmTcpciCxClient\* %PKG_ROOT%\USB\ >NUL
+if errorlevel 1 (set FAILURE=imxUcmTcpciCxClient & goto ERROR)
+copy %REPO_ROOT%\driver\USB\imxUcmTcpciCxClient\imxUcmTcpciCxClient.wm.xml %PKG_ROOT%\USB\ >NUL
 
 :: Copy HAL Extension Packages
 echo Copying HAL Extension Packages to %PKG_ROOT%
@@ -270,6 +295,17 @@ mkdir %PKG_ROOT%\HalExtDma >NUL 2>NUL
 copy %BUILD_ROOT%\HalExtiMXDma\* %PKG_ROOT%\HalExtDma\ >NUL
 if errorlevel 1 (set FAILURE=HalExtiMXDma & goto ERROR)
 copy %REPO_ROOT%\hals\halext\HalExtiMXDma\HalExtiMXDma.wm.xml %PKG_ROOT%\HalExtDma\ >NUL
+
+:: Copy Components
+echo Copying components to %PKG_ROOT%
+mkdir %PKG_ROOT%\Arm64CrtRuntime >NUL 2>NUL
+copy %BUILD_ROOT%\Arm64CrtRuntime\* %PKG_ROOT%\Arm64CrtRuntime\ >NUL
+if errorlevel 1 (set FAILURE=Arm64CrtRuntime & goto ERROR)
+copy %REPO_ROOT%\components\Arm64CrtRuntime\Arm64CrtRuntime.wm.xml %PKG_ROOT%\Arm64CrtRuntime\ >NUL
+
+mkdir %PKG_ROOT%\Arm64DefaultApp >NUL 2>NUL
+copy %REPO_ROOT%\components\Arm64DefaultApp\Packages\* %PKG_ROOT%\Arm64DefaultApp\ >NUL
+if errorlevel 1 (set FAILURE=Arm64DefaultApp & goto ERROR)
 
 :: Copy Firmware Packages
 echo Copying Firmware Packages to %PKG_ROOT%

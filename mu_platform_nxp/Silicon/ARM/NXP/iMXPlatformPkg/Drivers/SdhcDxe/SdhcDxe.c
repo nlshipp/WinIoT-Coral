@@ -853,7 +853,7 @@ SdhcWriteBlockData (
   CONST UINTN BlockWordCount = USDHC_BLOCK_LENGTH_BYTES / sizeof (UINT32);
   NumBlocks = LengthInBytes / USDHC_BLOCK_LENGTH_BYTES;
   Reg = SdhcCtx->RegistersBase;
-  Retry = 100000;
+  Retry = USDHC_POLL_RETRY_COUNT;
 
   while (NumBlocks > 0) {
     RemainingWords = BlockWordCount;
@@ -866,7 +866,7 @@ SdhcWriteBlockData (
     }
 
     while (RemainingWords > 0 && !IntStatus.Fields.TC) {
-      MicroSecondDelay (100);
+      MicroSecondDelay (USDHC_POLL_WAIT_US);
       IntStatus.AsUint32 = MmioRead32 ((UINTN)&Reg->INT_STATUS);
       MmioWrite32 ((UINTN)&Reg->DATA_BUFF_ACC_PORT, *Buffer);
       Buffer++;

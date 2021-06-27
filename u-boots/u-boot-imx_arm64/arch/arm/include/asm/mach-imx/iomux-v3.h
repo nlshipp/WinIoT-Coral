@@ -106,7 +106,7 @@ typedef u64 iomux_v3_cfg_t;
 #define PAD_CTL_ODE		(0x1 << 5)
 #define PAD_CTL_PUE		(0x1 << 6)
 #define PAD_CTL_HYS		(0x1 << 7)
-#if defined(CONFIG_IMX8MM)
+#if defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
 #define PAD_CTL_PE		(0x1 << 8)
 #else
 #define PAD_CTL_LVTTL		(0x1 << 8)
@@ -168,6 +168,14 @@ typedef u64 iomux_v3_cfg_t;
 #define PAD_CTL_DSE_48ohm	(5 << 3)
 #define PAD_CTL_DSE_40ohm	(6 << 3)
 #define PAD_CTL_DSE_34ohm	(7 << 3)
+
+#define PAD_CTL_DSE_260ohm	(1 << 3)
+#define PAD_CTL_DSE_130ohm	(2 << 3)
+#define PAD_CTL_DSE_88ohm	(3 << 3)
+#define PAD_CTL_DSE_65ohm	(4 << 3)
+#define PAD_CTL_DSE_52ohm	(5 << 3)
+#define PAD_CTL_DSE_43ohm	(6 << 3)
+#define PAD_CTL_DSE_37ohm	(7 << 3)
 
 /* i.MX6SL/SLL */
 #define PAD_CTL_LVE		(1 << 1)

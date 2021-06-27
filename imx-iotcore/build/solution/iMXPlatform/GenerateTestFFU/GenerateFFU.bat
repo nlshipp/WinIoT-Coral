@@ -51,4 +51,8 @@ if "%PLATFORM%"=="ARM64" (
     REM cd /d %BATCH_HOME%
     REM echo "Building NXPEVK_iMX8M_Mini_2GB FFU"
     REM call BuildImage NXPEVK_iMX8M_Mini_2GB NXPEVK_iMX8M_Mini_2GB_TestOEMInput.xml
+
+    REM cd /d %BATCH_HOME%
+    REM echo "Building EVK_iMX8MN_2GB FFU"
+    REM call BuildImage EVK_iMX8MN_2GB EVK_iMX8MN_2GB_TestOEMInput.xml
 )

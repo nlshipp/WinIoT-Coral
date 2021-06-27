@@ -15,7 +15,11 @@
 /**
  * @brief   Descriptor Entry type
  */
+#ifdef CFG_PHYS_64BIT
+typedef uint64_t descEntry_t;
+#else
 typedef uint32_t descEntry_t;
+#endif
 
 /**
  * @brief   Descriptor pointer type
@@ -30,7 +34,13 @@ typedef uint32_t descStatus_t;
 /**
  * @brief  Returns the number of entries of the descriptor \a desc
  */
-#define DESC_NBENTRIES(desc)	GET_JD_DESCLEN(*(descEntry_t *)desc)
+uint32_t desc_get_len(uint32_t * desc);
+
+/* Descriptor Modification function */
+void desc_init(uint32_t *desc);
+void desc_update_hdr(uint32_t *desc, uint32_t word);
+void desc_add_ptr(uint32_t *desc, paddr_t ptr);
+void desc_add_word(uint32_t *desc, uint32_t word);
 
 /* Debug print function to dump a Descriptor in hex */
 static inline void dump_desc(void *desc)
@@ -39,7 +49,7 @@ static inline void dump_desc(void *desc)
 	size_t len;
 	descPointer_t buf = desc;
 
-	len = DESC_NBENTRIES(desc);
+	len = desc_get_len(desc);
 
 	for (idx = 0; idx < len; idx++)
 		trace_printf(NULL, 0, 0, false, "[%02d] %08X",
@@ -49,7 +59,7 @@ static inline void dump_desc(void *desc)
 /**
  * @brief  Returns the descriptor size in bytes of \a nbEntries
  */
-#define DESC_SZBYTES(nbEntries)	(nbEntries * sizeof(descEntry_t))
+#define DESC_SZBYTES(nbEntries)	(nbEntries * sizeof(uint32_t))
 
 /**
  * @brief  Descriptor Header starting at index \a idx w/o descriptor length
@@ -118,6 +128,15 @@ static inline void dump_desc(void *desc)
 #define LD_IMM(cla, dst, len) \
 			(CMD_LOAD_TYPE | CMD_CLASS(cla) | CMD_IMM |	\
 			LOAD_DST(dst) | LOAD_LENGTH(len))
+
+/**
+ * @brief  Load Immediate value of length \a len to register \a dst of
+ *         class \a cla starting of register offset \a off
+ */
+#define LD_IMM_OFF(cla, dst, len, off) \
+			(CMD_LOAD_TYPE | CMD_CLASS(cla) | CMD_IMM |	\
+			LOAD_DST(dst) | LOAD_OFFSET(off) | LOAD_LENGTH(len))
+
 
 /**
  * @brief  Load Immediate value of length \a len to register \a dst w/o class
@@ -476,9 +495,41 @@ static inline void dump_desc(void *desc)
 			PROT_BLOB_FMT_MSTR)
 
 /**
+ * @brief   Blob encapsulation
+ */
+#define BLOB_ENCAPS \
+			(CMD_OP_TYPE | OP_TYPE(ENCAPS) | PROTID(BLOB) | \
+			PROT_BLOB_FORMAT(NORMAL))
+
+/**
+ * @brief   Blob decapsulation
+ */
+#define BLOB_DECAPS \
+			(CMD_OP_TYPE | OP_TYPE(DECAPS) | PROTID(BLOB) | \
+			PROT_BLOB_FORMAT(NORMAL))
+
+/**
+ * @brief Black key CCM size
+ */
+#define BLACK_KEY_CCM_SIZE(size) \
+			(ROUNDUP(size, 8) + BLACK_KEY_NONCE_SIZE + \
+			BLACK_KEY_ICV_SIZE)
+/**
+ * @brief Black key ECB size
+ */
+#define BLACK_KEY_ECB_SIZE(size) \
+			ROUNDUP(size, 16)
+
+/**
+ * @brief   Sequence Inout Pointer of length \a len
+ */
+#define SEQ_IN_PTR(len) \
+			(CMD_SEQ_IN_TYPE | SEQ_LENGTH(len))
+
+/**
  * @brief   Sequence Output Pointer of length \a len
  */
 #define SEQ_OUT_PTR(len) \
-			(CMD_SEQ_OUT_TYPE | SEQ_OUT_LENGTH(len))
+			(CMD_SEQ_OUT_TYPE | SEQ_LENGTH(len))
 
 #endif /* __DESC_HELPER_H__ */

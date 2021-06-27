@@ -1,0 +1,146 @@
+NXP Software Content Register
+
+Release - Windows 10 IoT 1.1.0 (imx-firmware package)
+April 2020
+Outgoing License:            LA_OPT_NXP_Software_License
+                             Production Use, Section 2.3 applies
+License file:                ./LA_OPT_NXP_Software_License.htm
+
+--------------------------------------------
+
+Package:                     cst
+License:                     LA_OPT36 v2 August 2018
+License Files:               ./cst/LICENSE.nxp
+Package Category:            BSP imx-firmware
+Type of content:             Source code
+Description and comments:    OpenSSL toolkit stays
+Release Location:            ./cst
+Origin:                      NXP (LA_OPT36 v2 August 2018)
+                             https://www.nxp.com/webapp/Download?colCode=IMX_CST_TOOL&appType=license&location=null
+
+--------------------------------------------
+
+Package:                     edk2
+License:                     BSD-2-Clause-Patent
+License Files:               ./edk2/License.txt
+Package Category:            BSP imx-firmware
+Type of content:             Source code
+Description and comments:    EFI Development Kit II (EDK II)
+Release Location:            ./edk2
+Origin:                      TianoCore (BSD-2-Clause-Patent)
+                             http://www.tianocore.org - https://github.com/tianocore/tianocore.github.io/wiki/EDK-II
+
+--------------------------------------------
+
+Package:                     firmware-imx-8.1
+License:                     LA_OPT_NXP_Software_License v5 January 2019
+                             Production Use, Section 2.3 applies
+License File:                ./firmware-imx-8.1/COPYING
+Package Category:            BSP imx-firmware
+Type of Content:             binary
+Description and comments:    BSP firmware - DDR  EPDC HDMI SDMA SECO VPU
+Release Location:            ./firmware-imx-8.1
+Origin:                      NXP (LA_OPT_NXP_Software_License)
+                             In addition, these components contain code from the companies listed below.
+                               DDR:   Synopsys (proprietary)
+                               EPDC:  E Ink Corporation (proprietary)
+                               HDMI:  Cadence Design Systems, Inc. (proprietary)
+                               SECO:  NXP (proprietary)
+                               SDMA:  NXP (proprietary)
+                               VPU:   Chips & Media, Inc.  (proprietary)
+
+--------------------------------------------
+
+Package:                     imx-atf
+License:                     BSD-3-Clause
+License File:                ./imx-atf/license.rst
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    ARM Trusted Firmware
+Release Location:            ./imx-atf
+Origin:                      NXP (proprietary)
+                             arm-trusted-firmware v1.4 - ARM Limited (BSD-3-Clause) - http://github.com/ARM-software/arm-trusted-firmware/
+
+--------------------------------------------
+
+Package:                     imx-edk2-platforms
+License:                     BSD-2-Clause
+License File:                ./imx-edk2-platforms/License.txt
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    EDK II Platforms
+Release Location:            ./imx-edk2-platforms
+Origin:                      Microsoft (BSD-2-Clause) - https://github.com/ms-iot/imx-edk2-platforms/
+
+--------------------------------------------
+
+Package:                     imx-mkimage
+License:                     GPL-2.0
+License File:                ./imx-mkimage/COPYING
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Make Image BootLoader (independent SW package, aggregated into this release, modified by NXP, distributed under GPL license)
+Release Location:            ./imx-mkimage
+Origin:                      NXP (GPL-2.0)
+                             Das U-Boot - Universal Bootloader (GPL-2.0) - http://www.denx.de/wiki/U-Boot/WebHome
+
+--------------------------------------------
+
+Package:                     mu-platform-nxp
+License:                     BSD-2-Clause
+License File:                ./mu-platform-nxp/README.md
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Project MU
+Release Location:            ./mu-platform-nxp
+Origin:                      Microsoft (BSD-2-Clause) - https://microsoft.github.io/mu/
+
+--------------------------------------------
+
+Package:                     optee-os
+License:                     BSD-2-Clause, BSD-3-Clause
+License File:                ./optee_os/optee_os_arm/LICENSE, ./optee_os/optee_os_arm64/LICENSE
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Open Portable Trusted Execution Environment for Linux on ARM
+Release Location:            ./optee-os
+Origin:                      Linaro (BSD-2-Clause, BSD-3-Clause)
+                             OP-TEE Trusted OS (BSD-2-Clause) - https://github.com/OP-TEE/optee_os
+
+--------------------------------------------
+
+Package:                     riot
+License:                     MIT
+License File:                ./RIoT/LICENSE
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Robust Internet of Things
+Release Location:            ./riot
+Origin:                      Microsoft (MIT) - https://github.com/Microsoft/RIoT.git
+
+--------------------------------------------
+
+Package:                     u-boots
+License:                     GPL-2.0
+License File:                ./u-boots/u-boot-imx_arm/Licenses/, ./u-boots/u-boot-imx_arm64/Licenses/
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Bootloader with i.MX-specific capabilities (independent SW package, aggregated into this release, modified by NXP, distributed under GPL license)
+Release Location:            ./u-boots
+Origin:                      NXP (GPL-2.0)
+                             Das U-Boot - Universal Bootloader (GPL-2.0) - http://www.denx.de/wiki/U-Boot/WebHome
+                             Android Open Source Project (BSD-2-Clause) - https://source.android.com/
+                             zlib (zlib license) - http://www.zlib.net/
+
+--------------------------------------------
+
+Package:                     msrsec
+License:                     MIT
+License File:                ./msrsec/LICENSE
+Package Category:            BSP imx-firmware
+Type of Content:             source
+Description and comments:    Microsoft Research Security TAs
+Release Location:            ./msrsec
+Origin:                      Microsoft (MIT) - https://github.com/Microsoft/MSRSec
+
+--------------------------------------------

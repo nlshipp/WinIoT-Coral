@@ -42,7 +42,7 @@ static void imx_digproc(void)
 		digprog |= 0x1;
 	}
 
-#elif defined(CFG_MX8MM)
+#elif defined(CFG_MX8MM) || defined(CFG_MX8MN)
 	digprog = read32(anatop_addr + HW_ANADIG_DIGPROG_IMX8MM);
 #else
 	digprog = read32(anatop_addr + HW_ANADIG_DIGPROG);
@@ -183,6 +183,22 @@ bool soc_is_imx8mq_b1_layer(void)
 		{
 			// B1
 			case 0x411:
+				return true;
+			default:
+				break;
+		}
+	}
+	return false;
+}
+
+bool soc_is_imx8mq_b0_layer(void)
+{
+	if (imx_soc_type() == SOC_MX8M)
+	{
+		switch (imx_soc_revision)
+		{
+			// B0
+			case 0x410:
 				return true;
 			default:
 				break;

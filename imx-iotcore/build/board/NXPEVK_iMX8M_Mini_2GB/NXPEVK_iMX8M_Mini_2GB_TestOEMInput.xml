@@ -37,7 +37,7 @@
   <Feature>IOT_SHELL_ONSCREEN_KEYBOARD</Feature>
   <Feature>IOT_SIREP</Feature>
   <Feature>IOT_SSH</Feature>
-  <Feature>IOT_UAP_DEFAULTAPP</Feature>
+<!--  <Feature>IOT_UAP_DEFAULTAPP</Feature> -->
   <Feature>IOT_WEBB_EXTN</Feature>
   <Feature>IOT_DIRECTX_TOOLS</Feature>
 <!--  <Feature>IOT_CRT140</Feature> -->
@@ -54,10 +54,12 @@
   <Feature>IOT_NARRATOR</Feature>
   <Feature>IOT_OCR_EN_US</Feature>
 <!--  <Feature>IOT_NANORDPSERVER</Feature> -->
+  <Feature>IOT_UAP_OOBE</Feature>
 </Microsoft>
 <OEM>
   <Feature>IOT_CRT140</Feature>
   <Feature>IMX_DRIVERS</Feature>
+  <Feature>APPX_DEFAULTCOREARM64</Feature>
 </OEM>
 </Features>
   <PackageFiles />

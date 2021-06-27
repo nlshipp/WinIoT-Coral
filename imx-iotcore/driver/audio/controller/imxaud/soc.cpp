@@ -300,6 +300,7 @@ CSoc::SetupClocks()
     TransmitConfigReg2.BitClockDivide = 0x1;  // bitclk = mclk / 4
     switch (CpuType) {
     case IMX_CPU_MX8MM:
+    case IMX_CPU_MX8MN:
         TransmitConfigReg2.MasterClockSelect = 2;
         break;
     default:

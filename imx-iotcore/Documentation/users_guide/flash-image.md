@@ -10,12 +10,12 @@ This chapter describes the process of creating a bootable SD card from a downloa
 1) Select **Custom** under "OS Build" list box.
 1) Click **Browse** and navigate and select the FFU file you have downloaded or created by building the BSP.
 1) Plug the SD card into the PC, and choose this SD card in "Drive" list box.
-1) Optionally, you can set the **Device Name** and **Administrator Password** selections for your device.
+1) Set the **Device Name** and **Administrator Password** for your device.
 1) Check the **I accept the software license terms** checkbox (lower right) and click **Install**.
 
 ![IoT Dashboard](images/dashboard.png "IoT Dashboard")
 
-Windows IoT Core Dashboard will now open a command window and use DISM (Deployment Image Servicing and Management Tool) to flash the FFU file to your microSD card.
+Windows IoT Core Dashboard will now open a command window and use DISM (Deployment Image Servicing and Management Tool) to flash the FFU file to your microSD card. Make sure you back up any files on your card before proceeding. Flashing will erase all previously stored data on the SD card.
 
 ![Flash](images/rpiflashffudism.jpg "Flash")
 
@@ -33,5 +33,5 @@ wmic diskdrive get Name, Manufacturer, Model, InterfaceType, MediaType, SerialNu
 
 For more information about flashing the FFU onto an SD Card using the Windows IoT Core Dashboard, follow the [IoT Core Manufacturing Guide](https://docs.microsoft.com/en-us/windows-hardware/manufacture/iot/create-a-basic-image#span-idflashanimagespanflash-the-image-to-a-memory-card).
 
-Once the SD card will be created, plug the card into the board and power up the board. The board should successfully boot up. If not, check the configuration of the boot switches - chapter [Basic board setup](#boot-switch).
+Once the SD card will be created, plug the card into the board and power up the board. The board should successfully boot up. If not, check the configuration of the boot switches - chapter [Basic Board Setup](#boot-switch).
 Optionally you can follow the steps in [Basic Terminal Setup](#terminal-setup) to establish serial connection between the host PC and the target IoT device to check output from U-Boot and UEFI.

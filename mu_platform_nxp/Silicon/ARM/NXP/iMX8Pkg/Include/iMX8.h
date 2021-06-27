@@ -24,7 +24,7 @@
 
 // TODO: probably need to add references to all other hardware blocks,
 // unlike imx6/7, AARCH64 uses the MMU and if it's not mapped you get an exception
-#if defined(CPU_IMX8MM)
+#if defined(CPU_IMX8MM) || defined(CPU_IMX8MN)
 #define ARM_PERIPHERALS_REGISTERS_PHYSICAL  0x31000000
 #define ARM_PERIPHERALS_REGISTERS_LENGTH    0x00400000
 
@@ -97,7 +97,7 @@
 //
 // Clock Source
 //
-#if defined(CPU_IMX8MM)
+#if defined(CPU_IMX8MM) || defined(CPU_IMX8MN)
 #define SOC_OSC_FREQUENCY_REF_HZ  24000000  // Oscillator frequency 24Mhz
 #else
 #define SOC_OSC_FREQUENCY_REF_HZ  25000000  // Oscillator frequency 25Mhz
@@ -144,7 +144,7 @@
 #define SDMA1_IRQ               DEFINE_IMX8_INTERRUPT(2)
 #define SDMA2_BASE_ADDRESS      0x302C0000
 #define SDMA2_IRQ               DEFINE_IMX8_INTERRUPT(103)
-#if defined(CPU_IMX8MM)
+#if defined(CPU_IMX8MM) || defined(CPU_IMX8MN)
 #define SDMA3_BASE_ADDRESS      0x302B0000
 #define SDMA3_IRQ               DEFINE_IMX8_INTERRUPT(34)
 #endif
@@ -308,7 +308,7 @@ typedef union {
 // IMX8M specific
 //
 
-#if defined(CPU_IMX8MM)
+#if defined(CPU_IMX8MM) || defined(CPU_IMX8MN)
 #define IOMUXC_GPR_BASE_ADDRESS             0x30340000
 
 #define IOMUXC_SW_MUX_PAD_BASE_ADDRESS      0x30330000
@@ -405,6 +405,19 @@ typedef enum {
 } IMX_INPUT_SELECT;
 #endif // CPU_IMX8MM
 
+/* Macro for GPC SIP */
+#define IMX_SIP_GPC                     0xC2000000
+/* Macro for fill SIP structure */
+#define imx_fill_sip(_Arg0, _Arg1, _Arg2, _Arg3, _Arg4, _str)   \
+                        {                                       \
+                            _str.Arg0 = _Arg0;                  \
+                            _str.Arg1 = _Arg1;                  \
+                            _str.Arg2 = _Arg2;                  \
+                            _str.Arg3 = _Arg3;                  \
+                            _str.Arg4 = _Arg4;                  \
+                        };
+
+
 /* TODO New IoMap.h BEGIN */
 
 #define IOMUXC_MUX_SION_DISABLED    0x00000000
@@ -444,6 +457,8 @@ typedef enum {
 
 #if defined(CPU_IMX8MM)
 #include "iMX8MM/MIMX8MM6_ca53.h"
+#elif defined(CPU_IMX8MN)
+#include "iMX8MN/MIMX8MN6_ca53.h"
 #else
 #include "iMX8MQ/MIMX8MQ7_ca53.h"
 #endif

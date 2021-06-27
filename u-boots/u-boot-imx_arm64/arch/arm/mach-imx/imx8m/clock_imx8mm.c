@@ -15,6 +15,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+u32 get_root_clk(enum clk_root_index clock_id);
+
 #ifdef CONFIG_SECURE_BOOT
 void hab_caam_clock_enable(unsigned char enable)
 {
@@ -253,6 +255,7 @@ u32 decode_fracpll(enum clk_root_src frac_pll)
 }
 
 enum intpll_out_freq {
+	INTPLL_OUT_600M,
 	INTPLL_OUT_750M,
 	INTPLL_OUT_800M,
 	INTPLL_OUT_1200M,
@@ -504,6 +507,11 @@ int intpll_configure(enum pll_clocks pll, enum intpll_out_freq freq)
 	};
 
 	switch (freq) {
+	case INTPLL_OUT_600M:
+		/* 24 * 0x12C / 3 / 2 ^ 2 */
+		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0x12C) |
+			INTPLL_PRE_DIV_VAL(3) | INTPLL_POST_DIV_VAL(2);
+		break;
 	case INTPLL_OUT_750M:
 		/* 24 * 0xfa / 2 / 2 ^ 2 */
 		pll_div_ctl_val = INTPLL_MAIN_DIV_VAL(0xfa) |
@@ -579,7 +587,11 @@ void mxs_set_lcdclk(uint32_t base_addr, uint32_t freq)
 find:
 	/* Select to video PLL */
 	debug("mxs_set_lcdclk, pre = %d, post = %d\n", pre, post);
+#ifdef CONFIG_IMX8MN
+	clock_set_target_val(DISPLAY_PIXEL_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(pre - 1) | CLK_ROOT_POST_DIV(post - 1));
+#else
 	clock_set_target_val(LCDIF_PIXEL_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(pre - 1) | CLK_ROOT_POST_DIV(post - 1));
+#endif
 
 }
 
@@ -600,8 +612,11 @@ void enable_display_clk(unsigned char enable)
 		clock_set_target_val(MIPI_DSI_CORE_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
 
 		/* 27Mhz MIPI DPHY PLL ref from video PLL */
+#ifdef CONFIG_IMX8MN
+		clock_set_target_val(DISPLAY_DSI_PHY_REF_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(7) |CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV22));
+#else
 		clock_set_target_val(MIPI_DSI_PHY_REF_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(7) |CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV22));
-
+#endif
 		clock_enable(CCGR_DISPMIX, true);
 	} else {
 		clock_enable(CCGR_DISPMIX, false);
@@ -640,11 +655,14 @@ int clock_init()
 
 	intpll_configure(ANATOP_ARM_PLL, INTPLL_OUT_1200M);
 
-	clock_set_target_val(ARM_A53_CLK_ROOT, CLK_ROOT_ON | \
-			     CLK_ROOT_SOURCE_SEL(1) | \
-			     CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1));
+	/* Bypass CCM A53 ROOT, Switch to ARM PLL -> MUX-> CPU */
+	clock_set_target_val(CORE_SEL_CFG, CLK_ROOT_SOURCE_SEL(1));
 
-	intpll_configure(ANATOP_SYSTEM_PLL3, INTPLL_OUT_750M);
+
+	if (is_imx8mn())
+		intpll_configure(ANATOP_SYSTEM_PLL3, INTPLL_OUT_600M);
+	else
+		intpll_configure(ANATOP_SYSTEM_PLL3, INTPLL_OUT_750M);
 	clock_set_target_val(NOC_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(2));
 
 	/* config GIC to sys_pll2_100m */
@@ -719,7 +737,14 @@ int clock_init()
 
 	clock_enable(CCGR_SEC_DEBUG, 1);
 
+	/*
+	 * set vpu clock root
+	 * vpu pll 600M
+	 */
+	intpll_configure(ANATOP_VPU_PLL, INTPLL_OUT_600M);
+
 	enable_display_clk(1);
+
 	return 0;
 };
 
@@ -829,11 +854,26 @@ u32 get_root_src_clk(enum clk_root_src root_src)
 	case AUDIO_PLL2_CLK:
 	case VIDEO_PLL_CLK:
 		return decode_fracpll(root_src);
+	case ARM_A53_ALT_CLK:
+		return get_root_clk(ARM_A53_CLK_ROOT);
 	default:
 		return 0;
 	}
 
 	return 0;
+}
+
+u32 get_arm_core_clk(void)
+{
+	enum clk_root_src root_src;
+	u32 root_src_clk;
+
+	if (clock_get_src(CORE_SEL_CFG, &root_src) < 0)
+		return 0;
+
+	root_src_clk = get_root_src_clk(root_src);
+
+	return root_src_clk;
 }
 
 u32 get_root_clk(enum clk_root_index clock_id)
@@ -864,7 +904,7 @@ u32 mxc_get_clock(enum mxc_clock clk)
 
 	switch (clk) {
 		case MXC_ARM_CLK:
-			return get_root_clk(ARM_A53_CLK_ROOT);
+			return get_arm_core_clk();
 		case MXC_IPG_CLK:
 			clock_get_target_val(IPG_CLK_ROOT, &val);
 			val = val & 0x3;

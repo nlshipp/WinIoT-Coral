@@ -35,8 +35,6 @@
 #define MMDC_P0_BASE		0x307A0000
 #define DDRC_BASE		0x307A0000
 #define IRAM_S_BASE		0x00180000
-#define WDOG_BASE               0x30280000
-#define CAAM_BASE               0x30900000
 
 #define CSU_BASE		0x303E0000
 #define CSU_CSL_START	0x0

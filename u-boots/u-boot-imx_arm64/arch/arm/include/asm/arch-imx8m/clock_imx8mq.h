@@ -13,6 +13,7 @@
 
 enum pll_clocks {
 	ANATOP_ARM_PLL,
+	ANATOP_VPU_PLL,
 	ANATOP_GPU_PLL,
 	ANATOP_SYSTEM_PLL1,
 	ANATOP_SYSTEM_PLL2,
@@ -171,6 +172,7 @@ enum clk_root_src {
 	EXT_CLK_3,
 	EXT_CLK_4,
 	OSC_27M_CLK,
+	ARM_A53_ALT_CLK,
 };
 
 /* CCGR index */
@@ -635,7 +637,8 @@ enum enet_freq {
 
 enum frac_pll_out_val {
 	FRAC_PLL_OUT_1000M,
-	FRAC_PLL_OUT_1600M,
+	FRAC_PLL_OUT_800M,
+	FRAC_PLL_OUT_600M,
 };
 
 enum sscg_pll_out_val {

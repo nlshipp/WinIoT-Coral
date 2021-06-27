@@ -1,6 +1,7 @@
 #
 #  Copyright (c) 2018, Microsoft Corporation. All rights reserved.
 #  Copyright (c) 2013-2018, ARM Limited. All rights reserved.
+#  Copyright 2019 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -65,7 +66,7 @@
   # Usb Support
   #
 !if $(CONFIG_USB) == TRUE
-!if $(IMX_FAMILY) == IMX8MM
+!if (($(IMX_FAMILY) == IMX8MM) || ($(IMX_FAMILY) == IMX8MN))
 # TODO: add Ehci package
 !else
   INF MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
@@ -139,7 +140,7 @@
 
   # fTPM Service TA UUID in UEFI format: bc50d971-d4c9-42c4-82cb-343fb7f37896
   FILE FREEFORM = BC50D971-D4C9-42C4-82CB-343FB7F37896 {
-    SECTION RAW = Microsoft/OpteeClientPkg/Bin/fTpmTa/Arm/Test/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta
+    SECTION RAW = Microsoft/OpteeClientPkg/Bin/fTpmTa/Arm64/Test/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta
   }
 
   # AuthVar Service TA UUID in UEFI format: 2d57c0f7-bddf-48ea-832f-d84a1a219301

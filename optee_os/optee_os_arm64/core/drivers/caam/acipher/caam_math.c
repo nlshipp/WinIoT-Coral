@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    caam_math.c
  *
@@ -15,9 +15,9 @@
 #include <tee/cache.h>
 #include <tee/tee_cryp_utl.h>
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_math.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_math.h>
 
 /* Local includes */
 #include "common.h"
@@ -26,6 +26,7 @@
 
 /* Utils includes */
 #include "utils_mem.h"
+#include "utils_status.h"
 
 /*
  * Debug Macros
@@ -61,7 +62,7 @@
  * @retval TEE_ERROR_OUT_OF_MEMORY     Out of memory
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_xor_mod_n(struct imxcrypt_mod_op *data)
+static TEE_Result do_xor_mod_n(struct nxpcrypt_mod_op *data)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -69,7 +70,6 @@ static TEE_Result do_xor_mod_n(struct imxcrypt_mod_op *data)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t    desc    = NULL;
-	uint8_t          desclen = 1;
 
 	int realloc = 0;
 	struct caambuf res_align = {0};
@@ -95,35 +95,38 @@ static TEE_Result do_xor_mod_n(struct imxcrypt_mod_op *data)
 		ret = TEE_ERROR_OUT_OF_MEMORY;
 		goto end_xor_mod_n;
 	}
-
+#ifdef	CFG_PHYS_64BIT
+#define	XOR_OP_DESC_SIZE	14
+#else
+#define	XOR_OP_DESC_SIZE	11
+#endif
 	/* Allocate the job descriptor */
-	desc = caam_alloc_desc(11);
+	desc = caam_alloc_desc(XOR_OP_DESC_SIZE);
 	if (!desc) {
 		ret = TEE_ERROR_OUT_OF_MEMORY;
 		goto end_xor_mod_n;
 	}
 
 	/* Load in N Modulus Size */
-	desc[desclen++] = LD_IMM(CLASS_1, REG_PKHA_N_SIZE, 4);
-	desc[desclen++] = data->N.length;
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, LD_IMM(CLASS_1, REG_PKHA_N_SIZE, 4));
+	desc_add_word(desc, data->N.length);
 
 	/* Load in A f irst value */
-	desc[desclen++] = FIFO_LD(CLASS_1, PKHA_A, NOACTION, data->A.length);
-	desc[desclen++] = paddr_A;
+	desc_add_word(desc, FIFO_LD(CLASS_1, PKHA_A, NOACTION, data->A.length));
+	desc_add_ptr(desc, paddr_A);
 
 	/* Load in B second value */
-	desc[desclen++] = FIFO_LD(CLASS_1, PKHA_B, NOACTION, data->B.length);
-	desc[desclen++] = paddr_B;
+	desc_add_word(desc, FIFO_LD(CLASS_1, PKHA_B, NOACTION, data->B.length));
+	desc_add_ptr(desc, paddr_B);
 
 	/* Operation B = A xor B mod n */
-	desc[desclen++] = PKHA_F2M_OP(MOD_ADD_A_B, B);
+	desc_add_word(desc, PKHA_F2M_OP(MOD_ADD_A_B, B));
 
 	/* Store the result */
-	desc[desclen++] = FIFO_ST(PKHA_B, data->result.length);
-	desc[desclen++] = res_align.paddr;
-
-	/* Set the descriptor Header with length */
-	desc[0] = DESC_HEADER(desclen);
+	desc_add_word(desc, FIFO_ST(PKHA_B, data->result.length));
+	desc_add_ptr(desc, res_align.paddr);
 	MATH_DUMPDESC(desc);
 
 	cache_operation(TEE_CACHECLEAN, data->A.data, data->A.length);
@@ -150,6 +153,7 @@ static TEE_Result do_xor_mod_n(struct imxcrypt_mod_op *data)
 		ret = TEE_SUCCESS;
 	} else {
 		MATH_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 end_xor_mod_n:
@@ -164,7 +168,7 @@ end_xor_mod_n:
 /**
  * @brief   Registration of the MATH Driver
  */
-struct imxcrypt_math driver_math = {
+struct nxpcrypt_math driver_math = {
 	.xor_mod_n = &do_xor_mod_n,
 };
 
@@ -181,7 +185,7 @@ enum CAAM_Status caam_math_init(vaddr_t ctrl_addr __unused)
 {
 	enum CAAM_Status retstatus = CAAM_FAILURE;
 
-	if (imxcrypt_register(CRYPTO_MATH_HW, &driver_math) == 0)
+	if (nxpcrypt_register(CRYPTO_MATH_HW, &driver_math) == 0)
 		retstatus = CAAM_NO_ERROR;
 
 	return retstatus;

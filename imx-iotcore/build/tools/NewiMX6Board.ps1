@@ -31,12 +31,14 @@ Remove-Item -path README.md
 Write-Output $NewBoard board package > README.md
 
 # Replace the word Sabre_iMX6Q_1GB in all new files, excluding the firmware binaries
-Write-Host "Replacing Sabre_iMX6Q_1GB in new board package files with $NewBoard"
-$Files = Get-ChildItem . * -rec -File -Exclude *.fd, *.merged, *.fit
+Write-Host "Replacing borad name ""Sabre_iMX6Q_1GB"" in new board package files with ""$NewBoard"""
+$Files = Get-ChildItem . * -rec -File -Exclude *.fd, *.merged, *.fit, *.elf, *.bz2
+$NewNamespace = $NewBoard -replace "_", ""
 foreach ($file in $Files)
 {
     (Get-Content $file.PSPath) |
     Foreach-Object { $_ -replace "Sabre_iMX6Q_1GB", $NewBoard } |
+    Foreach-Object { $_ -replace "SabreiMX6Q1GB", $NewNamespace } |
     Set-Content $file.PSPath
 }
 
@@ -47,7 +49,7 @@ Get-ChildItem -Filter "*Sabre_iMX6Q_1GB*" -Recurse | Rename-Item -NewName {$_.na
 Pop-Location
 
 # Create a new firmware folder
-robocopy $PSScriptRoot\..\firmware\Sabre_iMX6Q_1GB $PSScriptRoot\..\firmware\$NewBoard /E
+robocopy $PSScriptRoot\..\firmware\Sabre_iMX6Q_1GB $PSScriptRoot\..\firmware\$NewBoard MakeFile
 
 Push-Location -Path "$PSScriptRoot\..\firmware\"
 

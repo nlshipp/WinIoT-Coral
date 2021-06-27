@@ -182,6 +182,7 @@ struct fdt_header {
 
 #define FDT_MAGIC	0xd00dfeed
 #define CSF_SIZE 0x2000
+#define DEK_BLOB_MAX_SIZE 0x60
 
 #define ROM_V1 1
 #define ROM_V2 2 /* V2 ROM for iMX8MN */
@@ -937,6 +938,7 @@ int main(int argc, char **argv)
 	uint32_t header_hdmi_off = 0, header_hdmi_2_off = 0, header_plugin_off = 0, header_image_off = 0, dcd_off = 0;
 	uint32_t sld_header_off = 0;
 	int using_fit = 0;
+	int gen_fit_ivt = 0;
 	dcd_v2_t dcd_table;
 	uimage_header_t uimage_hdr;
 	uint32_t version = ROM_V1;
@@ -956,6 +958,7 @@ int main(int argc, char **argv)
 		{"csf", required_argument, NULL, 'c'},
 		{"second_loader", required_argument, NULL, 'u'},
 		{"version", required_argument, NULL, 'v'},
+		{"fit_ivt", required_argument, NULL, 't'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -968,7 +971,7 @@ int main(int argc, char **argv)
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 
-		c = getopt_long_only (argc, argv, ":i:f:d:o:p:h:q:m:e:b:",
+		c = getopt_long_only (argc, argv, ":i:f:d:o:p:h:q:m:e:b:t:",
 			long_options, &option_index);
 
 		/* Detect the end of the options. */
@@ -1079,6 +1082,21 @@ int main(int argc, char **argv)
 					exit(1);
 				}
 				break;
+			case 't':
+				fprintf(stderr, "FIT IMAGE:\t%s", optarg);
+				sld_img = optarg;
+				if ((optind < argc && *argv[optind] != '-') && (optind+1 < argc &&*argv[optind+1] != '-' )) {
+					sld_start_addr = (uint32_t) strtoll(argv[optind++], NULL, 0);
+					sld_src_off = (uint32_t) strtoll(argv[optind++], NULL, 0);
+					gen_fit_ivt = 1;
+
+					fprintf(stderr, " start addr: 0x%08x", sld_start_addr);
+					fprintf(stderr, " offset: 0x%08x\n", sld_src_off);
+				} else {
+					fprintf(stderr, "\n-fit_ivt option require TWO arguments: filename, start address in hex\n\n");
+					exit(1);
+				}
+				break;
 			case ':':
 				fprintf(stderr, "option %c missing arguments\n", optopt);
 				break;
@@ -1089,6 +1107,31 @@ int main(int argc, char **argv)
 					optopt);
 				exit(1);
 		}
+	}
+
+	if (gen_fit_ivt) {
+		/* Open output file */
+		ofd = open (ofname, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, 0666);
+		if (ofd < 0) {
+			fprintf(stderr, "%s: Can't open: %s\n",
+	                                ofname, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		/* Write image header */
+		copy_file(ofd, sld_img, 0, sld_src_off, 0);
+		sld_csf_off = generate_ivt_for_fit(ofd, sld_src_off, sld_start_addr, &sld_load_addr) + 0x20;
+
+		/* Close output file */
+		close(ofd);
+
+		fprintf(stderr, "\nFIT IVT IMAGE:\n");
+		fprintf(stderr, " fit_csf_off \t\t0x%x\n",
+			sld_csf_off);
+		fprintf(stderr, " fit hab block: \t0x%x 0x%x 0x%x\n",
+			sld_load_addr, sld_src_off, sld_csf_off - sld_src_off);
+
+		exit(0);
 	}
 
 	if((ap_img == NULL) || (ofname == NULL))
@@ -1104,6 +1147,11 @@ int main(int argc, char **argv)
 	}
 
 	if (version == ROM_V2) {
+
+		/* On V2, flexspi IVT offset is 0, image offset is 0x1000 */
+		if (ivt_offset == IVT_OFFSET_FLEXSPI)
+			rom_image_offset = IVT_OFFSET_FLEXSPI;
+
 		/* V2 ROM set IVT offset to 0 for all boot devices */
 		ivt_offset = 0;
 
@@ -1371,10 +1419,10 @@ int main(int argc, char **argv)
 	} else {
 		imx_header[IMAGE_IVT_ID].fhdr.csf = imx_header[IMAGE_IVT_ID].boot_data.start + imx_header[IMAGE_IVT_ID].boot_data.size;
 
-		imx_header[IMAGE_IVT_ID].boot_data.size += CSF_SIZE; /* 8K region dummy CSF */
+		imx_header[IMAGE_IVT_ID].boot_data.size += CSF_SIZE + DEK_BLOB_MAX_SIZE; /* 8K region dummy CSF */
 
 		csf_off = file_off;
-		file_off += CSF_SIZE;
+		file_off += CSF_SIZE + DEK_BLOB_MAX_SIZE;
 	}
 
 	/* Second boot loader image */
@@ -1593,13 +1641,14 @@ int main(int argc, char **argv)
 	}
 
 	/* The FLEXSPI configuration parameters will add to flash.bin by script, so need add 0x1000 offset to every offset prints */
-	if (ivt_offset == IVT_OFFSET_FLEXSPI) {
-		header_image_off += ivt_offset;
-		dcd_off += ivt_offset;
-		image_off += ivt_offset;
-		csf_off += ivt_offset;
-		sld_header_off += ivt_offset;
-		sld_csf_off += ivt_offset;
+	if ((version == ROM_V2 && rom_image_offset == IVT_OFFSET_FLEXSPI) ||
+        (version == ROM_V1 && ivt_offset == IVT_OFFSET_FLEXSPI)) {
+		header_image_off += IVT_OFFSET_FLEXSPI;
+		dcd_off += IVT_OFFSET_FLEXSPI;
+		image_off += IVT_OFFSET_FLEXSPI;
+		csf_off += IVT_OFFSET_FLEXSPI;
+		sld_header_off += IVT_OFFSET_FLEXSPI;
+		sld_csf_off += IVT_OFFSET_FLEXSPI;
 	}
 
 	fprintf(stderr, "\nLoader IMAGE:\n");

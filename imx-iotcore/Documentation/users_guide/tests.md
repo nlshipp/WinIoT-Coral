@@ -54,7 +54,7 @@ In order to connect your IoT Core device to your HLK server, it will need to con
    ```cmd
    KitsDeviceDetector.exe /rundevicediscovery
    REM example output: Name: 000EC687A555 | UniqueId: 00000000-0000-0000-0000-000ec687a555 | Address: 10.123.123.46 | Connection: SirepBroadcast2 | Location:
-   REM Note: If you have multiple matching results and the first doesn't work, try the UniqueID that is mostly zeroes.
+   REM Note: If you have multiple matching results and the first doesn't work, try the UniqueID that is mostly zeros.
    ```
    ```powershell
    # You can also run the following in PowerShell to search for just your IP address

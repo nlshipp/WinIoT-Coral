@@ -1,6 +1,7 @@
 #
 #  Copyright (c) 2018, Microsoft Corporation. All rights reserved.
 #  Copyright (c) 2011-2018, ARM Limited. All rights reserved.
+#  Copyright 2019 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -477,9 +478,9 @@
 #
 ########################
 [PcdsFixedAtBuild.common]
-!if $(IMX_FAMILY) == IMX8MM
+!if (($(IMX_FAMILY) == IMX8MM) || ($(IMX_FAMILY) == IMX8MN))
   #
-  # iMX8MM Plaform Memory Layout
+  # iMX8MMini/Nano Plaform Memory Layout
   #                                        PcdSystemMemoryBase
   # +-------------------+===> (0x40000000) PcdArmLcdDdrFrameBufferBase (Frame buffer)
   # | HDMI framebuffer  |  ^
@@ -599,7 +600,7 @@
   gOpteeClientPkgTokenSpaceGuid.PcdTpm2AcpiBufferSize|0x3000
 !endif
 
-!if $(IMX_FAMILY) == IMX8MM
+!if (($(IMX_FAMILY) == IMX8MM) || ($(IMX_FAMILY) == IMX8MN))
   # SDHC memory
   giMXPlatformTokenSpaceGuid.PcdSdhc1Base|0x30B40000
   giMXPlatformTokenSpaceGuid.PcdSdhc2Base|0x30B50000
@@ -828,7 +829,7 @@
   # Usb Support
   #
 !if $(CONFIG_USB) == TRUE
-!if $(IMX_FAMILY) == IMX8MM
+!if (($(IMX_FAMILY) == IMX8MM) || ($(IMX_FAMILY) == IMX8MN))
   # TODO : add Ehci packages
 !else
   MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf

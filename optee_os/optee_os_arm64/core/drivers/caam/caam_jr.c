@@ -20,6 +20,7 @@
 #include "common.h"
 #include "caam_jr.h"
 #include "caam_rng.h"
+#include "caam_io.h"
 
 /* Utils includes */
 #include "utils_delay.h"
@@ -48,7 +49,7 @@
 /**
  * @brief  Enable the interrupt mode or not
  */
-#ifdef CFG_IMXCRYPT
+#ifdef CFG_NXPCRYPT
 //#define IT_MODE
 #endif
 
@@ -62,7 +63,7 @@ struct inring_entry {
 /**
  * @brief   Definition of output ring object
  */
-struct outring_entry {
+struct __attribute__((__packed__)) outring_entry {
 	descEntry_t  desc;   ///< Physical address of the descriptor
 	descStatus_t status; ///< Status of the executed job
 };
@@ -285,9 +286,9 @@ static uint32_t do_jr_dequeue(uint32_t waitJobIds)
 			 * buffer
 			 */
 			caller = &jr_privdata->callers[idx_jr];
-			if (jr_out->desc == caller->pdesc) {
+			if (sec_read_addr(&jr_out->desc) == caller->pdesc) {
 				jobctx         = caller->jobctx;
-				jobctx->status = jr_out->status;
+				jobctx->status = get32(&jr_out->status);
 
 				/* Update return Job Id mask */
 				if (caller->jobid & waitJobIds)
@@ -399,7 +400,7 @@ static enum CAAM_Status do_jr_enqueue(struct jr_jobctx *jobctx, uint32_t *jobId)
 			jr_privdata->inwrite_index, job_mask, (vaddr_t)jobctx);
 
 	/* Push the descriptor into the JR HW list */
-	jr_privdata->inrings[jr_privdata->inwrite_index].desc = caller->pdesc;
+	sec_write_addr(&(jr_privdata->inrings[jr_privdata->inwrite_index]), caller->pdesc);
 
 	/* Ensure that physical memory is up to date */
 	cache_operation(
@@ -416,7 +417,7 @@ static enum CAAM_Status do_jr_enqueue(struct jr_jobctx *jobctx, uint32_t *jobId)
 
 	/* Ensure that input descriptor is pushed in physical memory */
 	cache_operation(TEE_CACHECLEAN, (void *)jobctx->desc,
-				DESC_SZBYTES(DESC_NBENTRIES(jobctx->desc)));
+				DESC_SZBYTES(desc_get_len(jobctx->desc)));
 
 	/* Inform HW that a new JR is available */
 	hal_jr_add_newjob(jr_privdata->baseaddr);
@@ -682,7 +683,7 @@ enum CAAM_Status caam_jr_init(struct jr_cfg *jr_cfg)
 	jr_privdata->it_handler.handler = caam_jr_irqhandler;
 	jr_privdata->it_handler.data    = jr_privdata;
 
-#ifdef CFG_IMXCRYPT
+#ifdef CFG_NXPCRYPT
 	itr_add(&jr_privdata->it_handler);
 #endif
 	hal_jr_enableIT(jr_privdata->baseaddr);
@@ -732,7 +733,7 @@ void caam_jr_resume(uint32_t pm_hint)
 	if (pm_hint == PM_HINT_CONTEXT_STATE) {
 #if !(defined(CFG_MX6DL) || defined(CFG_MX6D) || \
 		defined(CFG_MX6Q) || defined (CFG_MX6QP))
-#ifndef CFG_IMXCRYPT
+#ifndef CFG_NXPCRYPT
 		/*
 		 * In case the CAAM is not used the JR used to
 		 * instantiate the RNG has been released to Non-Secure
@@ -757,7 +758,7 @@ void caam_jr_resume(uint32_t pm_hint)
 		retstatus = caam_rng_instantiation();
 		if (retstatus != CAAM_NO_ERROR)
 			panic();
-#ifndef CFG_IMXCRYPT
+#ifndef CFG_NXPCRYPT
 		hal_jr_setowner(jr_privdata->ctrladdr,
 						jr_privdata->jroffset,
 						JROWN_ARM_NS);
@@ -767,11 +768,9 @@ void caam_jr_resume(uint32_t pm_hint)
 		hal_jr_resume(jr_privdata->baseaddr);
 }
 
-#ifdef CFG_WITH_HAB
 /**
  * @brief   Forces the completion of all CAAM Job to ensure
- *          CAAM is not BUSY. This enable the HAB to execute
- *          CAAM Jobs.
+ *          CAAM is not BUSY.
  *
  * @retval 0    CAAM is no more busy
  * @retval (-1) CAAM is still busy
@@ -786,4 +785,3 @@ int caam_jr_complete(void)
 
 	return ret;
 }
-#endif

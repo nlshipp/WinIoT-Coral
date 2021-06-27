@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WindowsCustomizations>
+  <PackageConfig xmlns="urn:schemas-Microsoft-com:Windows-ICD-Package-Config.v1.0">
+    <ID>0c1cb271-f316-48bd-b161-f3463a77a85a</ID>
+    <Name>SmartDisplayProv</Name>
+    <Version>3.4.3.0</Version>
+    <OwnerType>OEM</OwnerType>
+    <Rank>0</Rank>
+  </PackageConfig>
+  <Settings xmlns="urn:schemas-microsoft-com:windows-provisioning">
+    <Customizations>
+      <Common>
+        <!--Common settings here-->
+        <Policies>
+          <ApplicationManagement>
+            <AllowAllTrustedApps>Yes</AllowAllTrustedApps>
+          </ApplicationManagement>
+        </Policies>
+        <StartupApp>
+          <Default>IoTCoreDefaultAppNXP_1w720vyc4ccym!App</Default>
+        </StartupApp>
+        <UniversalAppInstall>
+          <UserContextApp>
+            <Application PackageFamilyName="IoTCoreDefaultAppNXP_1w720vyc4ccym" Name="SmartDisplay.msix">
+              <ApplicationFile>SmartDisplay.msix</ApplicationFile>
+              <DependencyAppxFiles>
+                <Dependency Name="Microsoft.NET.Native.Framework.Debug.2.2">Microsoft.NET.Native.Framework.Debug.2.2.appx</Dependency>
+                <Dependency Name="Microsoft.NET.Native.Runtime.2.2">Microsoft.NET.Native.Runtime.2.2.appx</Dependency>
+                <Dependency Name="Microsoft.VCLibs.ARM64.14.00">Microsoft.VCLibs.ARM64.14.00.appx</Dependency>
+              </DependencyAppxFiles>
+            </Application>
+          </UserContextApp>
+        </UniversalAppInstall>
+      </Common>
+    </Customizations>
+  </Settings>
+</WindowsCustomizations>

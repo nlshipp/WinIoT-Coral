@@ -172,6 +172,15 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		break;
 #endif
+#if defined(CONFIG_FIT)
+	case IMAGE_FORMAT_FIT:
+		if (authenticate_image(load_addr,
+			fdt_totalsize(load_addr)) != 0) {
+			printf("Authenticate FIT image fail, Please check\n");
+			return 1;
+		}
+		break;
+#endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:
 	default:

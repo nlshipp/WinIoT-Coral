@@ -2,6 +2,7 @@
 # iMX6 Common Configurations Definition
 #
 #  Copyright (c) 2018 Microsoft Corporation. All rights reserved.
+#  Copyright 2020 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -33,9 +34,9 @@
   DEFINE CONFIG_MPCORE = TRUE
 !endif
 
-  # Enable USB by default
+  # Disable USB by default
 !ifndef CONFIG_USB
-  DEFINE CONFIG_USB = TRUE
+  DEFINE CONFIG_USB = FALSE
 !endif
 
   # Disable the PCIexpress stack by default. Enable on demand.

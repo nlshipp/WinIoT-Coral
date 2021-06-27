@@ -336,7 +336,17 @@
 /*
  * BLOB Protocol Information
  */
-#define PROT_BLOB_FMT_MSTR		BIT32(1)
+#define PROT_BLOB_FMT_MSTR			BIT32(1)
+#define PROT_BLOB_TYPE(type)		SHIFT_U32(1, PROT_BLOB_TYPE_##type)
+#define PROT_BLOB_TYPE_BLACK_KEY	2
+#define PROT_BLOB_SEC_MEM			BIT(3)
+#define PROT_BLOB_EKT				8
+#define PROT_BLOB_INFO(aes)			SHIFT_U32(PROT_BLOB_AES_##aes, \
+					PROT_BLOB_EKT)
+#define PROT_BLOB_AES_CCM			1
+#define PROT_BLOB_AES_ECB			0
+#define PROT_BLOB_FORMAT(format)	SHIFT_U32(0, PROT_BLOB_FORMAT_##format)
+#define PROT_BLOB_FORMAT_NORMAL		0
 
 /*
  * Algorithm Identifier
@@ -518,12 +528,13 @@
 #define MATHI_IMM_VALUE(val)	SHIFT_U32((val & 0xFF), 4)
 
 /*
- * Sequence Output
+ * Sequence Input/Output
  */
+#define CMD_SEQ_IN_TYPE			CMD_TYPE(0x1E)
 #define CMD_SEQ_OUT_TYPE		CMD_TYPE(0x1F)
 
 /* Length */
-#define SEQ_OUT_LENGTH(len)		SHIFT_U32((len & 0xFFFF), 0)
+#define SEQ_LENGTH(len)			SHIFT_U32((len & 0xFFFF), 0)
 
 /*
  * PKHA Operation
@@ -629,6 +640,15 @@
 
 /* ECC Domain Selection */
 #define PDB_ECC_ECDSEL(curve)		SHIFT_U32((curve & 0x3F), 7)
+
+/* Black key padding */
+#define BLACK_KEY_NONCE_SIZE		6
+#define BLACK_KEY_ICV_SIZE			6
+
+/* AAD - Additional authenticated data */
+#define AAD_AES_SRC			SHIFT_U32(0x55, 8)
+#define AAD_CCM_MODE			SHIFT_U32(0x66, 0)
+#define AAD_ALG_SIZE(len)		SHIFT_U32((len & 0xFF), 16)
 
 /*
  * ECC Predefined Domain

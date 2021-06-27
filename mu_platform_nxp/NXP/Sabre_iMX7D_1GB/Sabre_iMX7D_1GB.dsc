@@ -4,6 +4,7 @@
 # The board is iMX7 with 1GB DRAM
 #
 #  Copyright (c) Microsoft Corporation. All rights reserved.
+#  Copyright 2020 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -24,7 +25,6 @@
 [Defines]
   DEFINE BOARD_NAME       = Sabre_iMX7D_1GB
   DEFINE IMX_FAMILY       = IMX7D
-  DEFINE CONFIG_USB       = FALSE
   DEFINE CONFIG_HEADLESS  = TRUE
   BOARD_DIR               = NXP/$(BOARD_NAME)
   FLASH_DEFINITION        = $(BOARD_DIR)/$(BOARD_NAME).fdf

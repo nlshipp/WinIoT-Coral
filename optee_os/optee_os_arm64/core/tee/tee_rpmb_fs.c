@@ -36,7 +36,6 @@
 
 #define RPMB_FS_MAGIC                   0x52504D42
 #define FS_VERSION                      2
-#define N_ENTRIES                       8
 
 #define FILE_IS_ACTIVE                  (1u << 0)
 #define FILE_IS_LAST_ENTRY              (1u << 1)
@@ -1512,6 +1511,7 @@ func_exit:
 
 static TEE_Result get_fat_start_address(uint32_t *addr);
 
+#if (TRACE_LEVEL >= TRACE_FLOW)
 static void dump_fat(void)
 {
 	TEE_Result res = TEE_ERROR_GENERIC;
@@ -1525,7 +1525,7 @@ static void dump_fat(void)
 	if (res != TEE_SUCCESS)
 		goto out;
 
-	size = N_ENTRIES * sizeof(struct rpmb_fat_entry);
+	size = CFG_RPMB_FS_RD_ENTRIES * sizeof(struct rpmb_fat_entry);
 	fat_entries = malloc(size);
 	if (!fat_entries) {
 		res = TEE_ERROR_OUT_OF_MEMORY;
@@ -1538,7 +1538,7 @@ static void dump_fat(void)
 		if (res != TEE_SUCCESS)
 			goto out;
 
-		for (i = 0; i < N_ENTRIES; i++) {
+		for (i = 0; i < CFG_RPMB_FS_RD_ENTRIES; i++) {
 
 			FMSG("flags 0x%x, size %d, address 0x%x, filename '%s'",
 				fat_entries[i].flags,
@@ -1559,6 +1559,12 @@ static void dump_fat(void)
 out:
 	free(fat_entries);
 }
+#else
+static void dump_fat(void)
+{
+}
+#endif
+
 
 #if (TRACE_LEVEL >= TRACE_DEBUG)
 static void dump_fh(struct rpmb_file_handle *fh)
@@ -1768,7 +1774,7 @@ static TEE_Result read_fat(struct rpmb_file_handle *fh, tee_mm_pool_t *p)
 	if (res != TEE_SUCCESS)
 		goto out;
 
-	size = N_ENTRIES * sizeof(struct rpmb_fat_entry);
+	size = CFG_RPMB_FS_RD_ENTRIES * sizeof(struct rpmb_fat_entry);
 	fat_entries = malloc(size);
 	if (!fat_entries) {
 		res = TEE_ERROR_OUT_OF_MEMORY;
@@ -1787,7 +1793,7 @@ static TEE_Result read_fat(struct rpmb_file_handle *fh, tee_mm_pool_t *p)
 		if (res != TEE_SUCCESS)
 			goto out;
 
-		for (i = 0; i < N_ENTRIES; i++) {
+		for (i = 0; i < CFG_RPMB_FS_RD_ENTRIES; i++) {
 			/*
 			 * Look for an entry, matching filenames. (read, rm,
 			 * rename and stat.). Only store first filename match.
@@ -2365,7 +2371,7 @@ static TEE_Result rpmb_fs_dir_populate(const char *path,
 	if (res != TEE_SUCCESS)
 		goto out;
 
-	size = N_ENTRIES * sizeof(struct rpmb_fat_entry);
+	size = CFG_RPMB_FS_RD_ENTRIES * sizeof(struct rpmb_fat_entry);
 	fat_entries = malloc(size);
 	if (!fat_entries) {
 		res = TEE_ERROR_OUT_OF_MEMORY;
@@ -2379,7 +2385,7 @@ static TEE_Result rpmb_fs_dir_populate(const char *path,
 		if (res != TEE_SUCCESS)
 			goto out;
 
-		for (i = 0; i < N_ENTRIES; i++) {
+		for (i = 0; i < CFG_RPMB_FS_RD_ENTRIES; i++) {
 			filename = fat_entries[i].filename;
 			if (fat_entries[i].flags & FILE_IS_ACTIVE) {
 				matched = false;

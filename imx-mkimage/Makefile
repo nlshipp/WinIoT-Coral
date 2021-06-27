@@ -9,6 +9,9 @@ SRCS = src/imx8qm.c  src/imx8qx.c src/imx8qxb0.c src/mkimage_imx8.c
 ifneq ($(findstring iMX8M,$(SOC)),)
 SOC_DIR = iMX8M
 endif
+ifeq ($(SOC),iMX8DX)
+SOC_DIR = iMX8QX
+endif
 SOC_DIR ?= $(SOC)
 
 vpath $(INCLUDE)
@@ -36,10 +39,11 @@ $(MKIMG): src/build_info.h $(SRCS)
 
 bin: $(MKIMG)
 
-src/build_info.h:
-	@echo -n '#define MKIMAGE_COMMIT 0x' > src/build_info.h
-	@git rev-parse --short=8 HEAD >> src/build_info.h
-	@echo '' >> src/build_info.h
+# skip for zipped version
+#src/build_info.h:
+#	@echo -n '#define MKIMAGE_COMMIT 0x' > src/build_info.h
+#	@git rev-parse --short=8 HEAD >> src/build_info.h
+#	@echo '' >> src/build_info.h
 
 help:
 	@echo $(CURR_DIR)

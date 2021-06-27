@@ -206,7 +206,6 @@ static struct imx_pwr_domain pu_domains[] = {
 	IMX_MIX_DOMAIN(GPU3D),
 };
 
-static uint32_t gpc_wake_irqs[4] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, };
 static uint32_t gpc_imr_offset[] = { 0x30, 0x40, 0x1c0, 0x1d0, };
 /* save gic dist&redist context when NOC wrapper is power down */
 static struct plat_gic_ctx imx_gicv3_ctx;
@@ -588,6 +587,8 @@ static void imx8mm_tz380_init(void)
 	tzc380_configure_region(0, 0x00000000, TZC_ATTR_REGION_SIZE(TZC_REGION_SIZE_4G) | TZC_ATTR_REGION_EN_MASK | TZC_ATTR_SP_ALL);
 }
 
+#define CCGR(x)		(0x4000 + (x) * 16)
+
 void noc_wrapper_pre_suspend(unsigned int proc_num)
 {
 	uint32_t val;
@@ -604,9 +605,19 @@ void noc_wrapper_pre_suspend(unsigned int proc_num)
 		mmio_write_32(IMX_GPC_BASE + MST_CPU_MAPPING, val);
 
 		/* noc can only be power down when all the pu domain is off */
-		if (!pu_domain_status)
+		if (!pu_domain_status) {
 			/* enable noc power down */
 			imx_noc_slot_config(true);
+
+			/*
+			 * below clocks must be enabled to make sure RDC MRCs
+			 * can be successfully reloaded.
+			 */
+			mmio_setbits_32(IMX_CCM_BASE + 0xa300, (0x1 << 28));
+			mmio_write_32(IMX_CCM_BASE + CCGR(5), 0x3);
+			mmio_write_32(IMX_CCM_BASE + CCGR(37), 0x3);
+			mmio_write_32(IMX_CCM_BASE + CCGR(87), 0x3);
+		}
 	}
 	/*
 	 * gic redistributor context save must be called when
@@ -663,7 +674,7 @@ void imx_set_sys_wakeup(int last_core, bool pdn)
 	/* clear last core's IMR based on GIC's mask setting */
 	for (int i = 0; i < 4; i++) {
 		if (pdn)
-			irq_mask = ~dist_ctx->gicd_isenabler[i] | gpc_wake_irqs[i];
+			irq_mask = ~dist_ctx->gicd_isenabler[i];
 		else
 			irq_mask = IMR_MASK_ALL;
 
@@ -677,16 +688,6 @@ void imx_set_sys_wakeup(int last_core, bool pdn)
 		val &= ~(1 << 24);
 		mmio_write_32(IMX_GPC_BASE + GPC_IMR1_CORE0_A53 + 0x8, val);
 	}
-}
-
-static void imx_gpc_set_wake_irq(uint32_t hwirq, uint32_t on)
-{
-	uint32_t mask, idx;
-
-	mask = 1 << hwirq % 32;
-	idx = hwirq / 32;
-	gpc_wake_irqs[idx] = on ? gpc_wake_irqs[idx] & ~mask :
-				 gpc_wake_irqs[idx] | mask;
 }
 
 #define GPU_RCR		0x40
@@ -773,8 +774,11 @@ static void imx_gpc_pm_domain_enable(uint32_t domain_id, uint32_t on)
 			/* wait for power request done */
 			while (mmio_read_32(IMX_GPC_BASE + PU_PGC_UP_TRG) & pwr_domain->pwr_req);
 
-			if (domain_id == VPU_G1 || domain_id == VPU_G2 || domain_id == VPU_H1)
+			if (domain_id == VPU_G1 || domain_id == VPU_G2 || domain_id == VPU_H1) {
 				vpu_sft_reset_deassert(domain_id);
+				/* dealy for a while to make sure reset done */
+				udelay(100);
+			}
 		}
 
 		if (domain_id == GPUMIX) {
@@ -979,16 +983,16 @@ void imx_gpc_init(void)
 
 	/*
 	 * Set the CORE & SCU power up timing:
-	 * SW = 0x1, SW2ISO = 0x1;
+	 * SW = 0x1, SW2ISO = 0x8;
 	 * the CPU CORE and SCU power up timming counter
 	 * is drived  by 32K OSC, each domain's power up
 	 * latency is (SW + SW2ISO) / 32768
 	 */
-	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(0) + 0x4, 0x81);
-	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(1) + 0x4, 0x81);
-	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(2) + 0x4, 0x81);
-	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(3) + 0x4, 0x81);
-	mmio_write_32(IMX_GPC_BASE + PLAT_PGC_PCR + 0x4, 0x81);
+	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(0) + 0x4, 0x401);
+	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(1) + 0x4, 0x401);
+	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(2) + 0x4, 0x401);
+	mmio_write_32(IMX_GPC_BASE + COREx_PGC_PCR(3) + 0x4, 0x401);
+	mmio_write_32(IMX_GPC_BASE + PLAT_PGC_PCR + 0x4, 0x401);
 	mmio_write_32(IMX_GPC_BASE + GPC_PGC_SCU_TIMMING,
 		      (0x59 << 10) | 0x5B | (0x2 << 20));
 
@@ -1028,9 +1032,6 @@ int imx_gpc_handler(uint32_t smc_fid,
 	switch(x1) {
 	case FSL_SIP_CONFIG_GPC_PM_DOMAIN:
 		imx_gpc_pm_domain_enable(x2, x3);
-		break;
-	case FSL_SIP_CONFIG_GPC_SET_WAKE:
-		imx_gpc_set_wake_irq(x2, x3);
 		break;
 	default:
 		return SMC_UNK;

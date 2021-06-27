@@ -736,6 +736,14 @@ IMXUartIoctlGetModemControl (
     WDFREQUEST WdfRequest
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+IMXUartIoctlSetClrDtr (
+    IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
+    WDFREQUEST WdfRequest,
+    bool SetDtr
+);
+
 //
 // ACPI - Device Properties
 //

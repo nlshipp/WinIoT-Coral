@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    caam_mp.c
  *
@@ -14,13 +14,14 @@
 #include <mm/core_memprot.h>
 #include <tee/cache.h>
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_mp.h>
-#include <libimxcrypt_hash.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_mp.h>
+#include <libnxpcrypt_hash.h>
 
 /* Utils includes */
 #include "utils_mem.h"
+#include "utils_status.h"
 
 /* Local includes */
 #include "common.h"
@@ -36,9 +37,9 @@
 /*
  * Debug Macros
  */
-#define MP_DEBUG
+//#define MP_DEBUG
 #ifdef MP_DEBUG
-#define DUMP_DESC
+//#define DUMP_DESC
 //#define DUMP_BUF
 #define MP_TRACE		DRV_TRACE
 #else
@@ -81,19 +82,25 @@ static struct mp_privdata mp_privdata;
  * @param[in] passphrase         Passphrase
  * @param[in] len                Passphrase's length
  *
- * @retval  CAAM_NO_ERROR    Success
- * @retval  CAAM_FAILURE     General failure
- * @retval  CAAM_OUT_MEMORY  Out of memory
+ * @retval  CAAM_NO_ERROR       Success
+ * @retval  CAAM_FAILURE        General failure
+ * @retval  CAAM_NOT_SUPPORTED  Not supported feature
+ * @retval  CAAM_OUT_MEMORY     Out of memory
  */
 static enum CAAM_Status do_mppriv_gen(const uint8_t *passphrase, size_t len,
 					uint32_t curve)
 {
+#ifdef CFG_PHYS_64BIT
+#define MP_PRIV_DESC_ENTRIES	7
+#else
 #define MP_PRIV_DESC_ENTRIES	6
+#endif
+
 	enum CAAM_Status ret = CAAM_FAILURE;
 	struct jr_jobctx jobctx = {0};
 	descPointer_t desc = NULL;
 	paddr_t paddr = 0;
-	uint8_t desclen = 1;
+	uint8_t desclen;
 
 	MP_TRACE("MPPriv generation function\n");
 
@@ -114,16 +121,20 @@ static enum CAAM_Status do_mppriv_gen(const uint8_t *passphrase, size_t len,
 		goto exit_mppriv;
 	}
 
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
 	/* Load the input message */
-	desc[desclen++] = curve;
-	desc[desclen++] = paddr;
-	desc[desclen++] = len;
+	desc_add_word(desc, curve);
+	desc_add_ptr(desc, paddr);
+	desc_add_word(desc, len);
 
 	/* MPPrivK Operation */
-	desc[desclen++] = MPPRIVK;
+	desc_add_word(desc, MPPRIVK);
 
 	/* Set the descriptor Header with length and index */
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	MP_DUMPDESC(desc);
 
@@ -132,6 +143,7 @@ static enum CAAM_Status do_mppriv_gen(const uint8_t *passphrase, size_t len,
 
 	if (ret != CAAM_NO_ERROR) {
 		MP_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
+		ret = CAAM_NOT_SUPPORTED;
 	} else {
 		MP_TRACE("Do Mppriv gen CAAM");
 		ret = CAAM_NO_ERROR;
@@ -152,7 +164,7 @@ exit_mppriv:
  * @retval  TEE_SUCCESS                Success
  * @retval  TEE_ERROR_BAD_PARAMETERS   Bad parameters
  */
-static TEE_Result do_mpmr(struct imxcrypt_buf *mpmr_reg)
+static TEE_Result do_mpmr(struct nxpcrypt_buf *mpmr_reg)
 {
 	MP_TRACE("Get MPMR content");
 	/* check the size of the MPMR register */
@@ -175,14 +187,19 @@ static TEE_Result do_mpmr(struct imxcrypt_buf *mpmr_reg)
  * @retval  TEE_ERROR_BAD_PARAMETERS   Bad parameters
  * @retval  TEE_ERROR_OUT_OF_MEMORY    Out of memory
  */
-static TEE_Result do_mppub(struct imxcrypt_buf *pubkey)
+static TEE_Result do_mppub(struct nxpcrypt_buf *pubkey)
 {
+#ifdef CFG_PHYS_64BIT
+#define MP_PUB_DESC_ENTRIES	7
+#else
 #define MP_PUB_DESC_ENTRIES	6
+#endif
+
 	TEE_Result ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus = CAAM_FAILURE;
 	struct jr_jobctx jobctx = {0};
 	descPointer_t desc = NULL;
-	uint8_t desclen = 1;
+	uint8_t desclen;
 	int retP = 0;
 	struct caambuf key = {0};
 
@@ -205,18 +222,22 @@ static TEE_Result do_mppub(struct imxcrypt_buf *pubkey)
 		goto exit_mppub;
 	}
 
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
 	/* Load the input message */
-	desc[desclen++] = SHIFT_U32((mp_privdata.curve_sel & 0xFF), 17);
+	desc_add_word(desc, SHIFT_U32((mp_privdata.curve_sel & 0xFF), 17));
 
 	/* Output message */
-	desc[desclen++] = key.paddr;
-	desc[desclen++] = pubkey->length;
+	desc_add_ptr(desc, key.paddr);
+	desc_add_word(desc, pubkey->length);
 
 	/* MPPrivK Operation */
-	desc[desclen++] = MPPUBK;
+	desc_add_word(desc, MPPUBK);
 
 	/* Set the descriptor Header with length and index */
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	MP_DUMPDESC(desc);
 
@@ -238,6 +259,7 @@ static TEE_Result do_mppub(struct imxcrypt_buf *pubkey)
 		ret = TEE_SUCCESS;
 	} else {
 		MP_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_mppub:
@@ -260,9 +282,14 @@ exit_mppub:
  * @retval  TEE_ERROR_GENERIC          General error
  * @retval  TEE_ERROR_BAD_PARAMETERS   Bad parameters
  */
-static TEE_Result do_mpsign(struct imxcrypt_mp_sign *sdata)
+static TEE_Result do_mpsign(struct nxpcrypt_mp_sign *sdata)
 {
+#ifdef CFG_PHYS_64BIT
+#define MP_SIGN_DESC_ENTRIES	13
+#else
 #define MP_SIGN_DESC_ENTRIES	9
+#endif
+
 	TEE_Result ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus = CAAM_FAILURE;
 	struct jr_jobctx jobctx = {0};
@@ -273,7 +300,7 @@ static TEE_Result do_mpsign(struct imxcrypt_mp_sign *sdata)
 	struct caambuf h   = {0};
 	size_t len_hash = TEE_MAX_HASH_SIZE;
 	int retS = 0;
-	uint8_t desclen = 1;
+	uint8_t desclen;
 
 	/* check the signature size in function of the curve */
 	if (sdata->signature.length < 2*mp_privdata.sec_key_size)
@@ -312,24 +339,28 @@ static TEE_Result do_mpsign(struct imxcrypt_mp_sign *sdata)
 		goto exit_mpsign;
 	}
 
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
 	/* Load the input message */
-	desc[desclen++] = SHIFT_U32((mp_privdata.curve_sel & 0xFF), 17);
-	desc[desclen++] = paddr_m;
+	desc_add_word(desc, SHIFT_U32((mp_privdata.curve_sel & 0xFF), 17));
+	desc_add_ptr(desc, paddr_m);
 
 	/* Hash of message + MPMR result - Not used */
-	desc[desclen++] = h.paddr;
+	desc_add_ptr(desc, h.paddr);
 	/* Signature in the format (c, d) */
-	desc[desclen++] = sig.paddr;
-	desc[desclen++] = sig.paddr +
-		(mp_privdata.sec_key_size * sizeof(uint8_t));
+	desc_add_ptr(desc, sig.paddr);
+	desc_add_ptr(desc, sig.paddr +
+			(mp_privdata.sec_key_size * sizeof(uint8_t)));
 	/* Message Length */
-	desc[desclen++] = sdata->message.length;
+	desc_add_word(desc, sdata->message.length);
 
 	/* MPPrivK Operation */
-	desc[desclen++] = MPSIGN_OP;
+	desc_add_word(desc, MPSIGN_OP);
 
 	/* Set the descriptor Header with length and index */
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	MP_DUMPDESC(desc);
 
@@ -356,6 +387,7 @@ static TEE_Result do_mpsign(struct imxcrypt_mp_sign *sdata)
 		ret = TEE_SUCCESS;
 	} else {
 		MP_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_mpsign:
@@ -370,7 +402,7 @@ exit_mpsign:
 /**
  * @brief   Registration of the MP Driver
  */
-struct imxcrypt_mp driver_mp = {
+struct nxpcrypt_mp driver_mp = {
 	.export_pubkey = &do_mppub,
 	.export_mpmr = &do_mpmr,
 	.sign = &do_mpsign,
@@ -388,40 +420,95 @@ struct imxcrypt_mp driver_mp = {
 enum CAAM_Status caam_mp_init(vaddr_t ctrl_addr)
 {
 	enum CAAM_Status retstatus = CAAM_FAILURE;
+	int8_t ret_curve;
 	int hash_limit;
 	const char *passphrase = "manufacturing protection";
-	struct imxcrypt_buf msg_mpmr;
+	struct nxpcrypt_buf msg_mpmr;
 	const char *mpmr_data = "value to fill the MPMR content";
 
 	msg_mpmr.data = (uint8_t *)mpmr_data;
 	msg_mpmr.length = strlen(mpmr_data);
 
-	/* store the ctrl_addr in the private data */
-	hash_limit = hal_ctrl_hash_limit(ctrl_addr);
+	ret_curve = hal_ctrl_is_mpcurve(ctrl_addr);
 
-	switch (hash_limit) {
-	/* store the curve selection in the private data */
-	case HASH_SHA256:
-		mp_privdata.curve_sel = PDB_MP_CSEL_P256;
-		mp_privdata.sec_key_size = 32; break;
-	case HASH_SHA384:
-		mp_privdata.curve_sel = PDB_MP_CSEL_P384;
-		mp_privdata.sec_key_size = 48; break;
-	case HASH_SHA512:
-		mp_privdata.curve_sel = PDB_MP_CSEL_P521;
-		mp_privdata.sec_key_size = 66; break;
-
-	default:
-		MP_TRACE("This curve doesn't exist"); return retstatus;
+	if (ret_curve == (-1)) {
+		EMSG("*************************************");
+		EMSG("* Warning: Manufacturing protection *");
+		EMSG("*          is not supported         *");
+		EMSG("*************************************");
+		/*
+		 * Don't register the driver and return
+		 * no error to not stop the boot. Because
+		 * Driver is not register, the MP will not
+		 * be used.
+		 */
+		return CAAM_NO_ERROR;
 	}
 
-	if (!hal_ctrl_is_mpcurve(ctrl_addr)) {
-		MP_TRACE("MP Private key has not been generated .\n");
-		retstatus = do_mppriv_gen((const uint8_t *)passphrase,
-                            strlen(passphrase),
-			SHIFT_U32((PDB_MP_CSEL_P256 & 0xFF), 17));
+	if (ret_curve == 0) {
+		/*
+		 * Get the device HASH Limit to select the
+		 * MP Curve to be used
+		 */
+		hash_limit = hal_ctrl_hash_limit(ctrl_addr);
+
+		switch (hash_limit) {
+		case HASH_SHA256:
+			mp_privdata.curve_sel    = PDB_MP_CSEL_P256;
+			mp_privdata.sec_key_size = 32;
+			break;
+
+		case HASH_SHA384:
+			mp_privdata.curve_sel    = PDB_MP_CSEL_P384;
+			mp_privdata.sec_key_size = 48;
+			break;
+
+		case HASH_SHA512:
+			mp_privdata.curve_sel    = PDB_MP_CSEL_P521;
+			mp_privdata.sec_key_size = 66;
+			break;
+
+		default:
+			MP_TRACE("This curve doesn't exist");
+			return retstatus;
+		}
+
+		MP_TRACE("MP Private key has not been generated");
+		retstatus = do_mppriv_gen(
+				(const uint8_t *)passphrase,
+				strlen(passphrase),
+				SHIFT_U32((mp_privdata.curve_sel & 0xFF), 17));
+
 		if (retstatus != CAAM_NO_ERROR) {
 			MP_TRACE("do_mppriv_gen failed!");
+			EMSG("*************************************");
+			EMSG("* Warning: Manufacturing protection *");
+			EMSG("*          is not supported         *");
+			EMSG("*************************************");
+			return retstatus;
+		}
+	} else {
+		/*
+		 * MP Curve is already programmed
+		 * Set the Secure Kye size corresponding
+		 */
+		mp_privdata.curve_sel = ret_curve;
+
+		switch (ret_curve) {
+		case PDB_MP_CSEL_P256:
+			mp_privdata.sec_key_size = 32;
+			break;
+
+		case PDB_MP_CSEL_P384:
+			mp_privdata.sec_key_size = 48;
+			break;
+
+		case PDB_MP_CSEL_P521:
+			mp_privdata.sec_key_size = 66;
+			break;
+
+		default:
+			MP_TRACE("This curve is not supported");
 			return retstatus;
 		}
 	}
@@ -438,7 +525,7 @@ enum CAAM_Status caam_mp_init(vaddr_t ctrl_addr)
 	/* see the MPMR content (32 registers of 8 bits) */
 	hal_ctrl_get_mpmr(ctrl_addr, mp_privdata.val_mpmr);
 
-	if (imxcrypt_register(CRYPTO_MP, &driver_mp) == 0)
+	if (nxpcrypt_register(CRYPTO_MP, &driver_mp) == 0)
 		retstatus = CAAM_NO_ERROR;
 	else
 		retstatus = CAAM_FAILURE;

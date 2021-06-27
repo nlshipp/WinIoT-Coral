@@ -1926,6 +1926,7 @@ NTSTATUS IMX_GPIO::configureCPUType (
         break;
 
     case IMX_CPU_MX8MM:
+    case IMX_CPU_MX8MN:
         bankStride = IMX8MM_GPIO_BANK_STRIDE;
         bankCount = IMX8MM_GPIO_BANK_COUNT;
         pinCount = IMX8MM_GPIO_PIN_COUNT;

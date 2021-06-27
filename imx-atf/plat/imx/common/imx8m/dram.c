@@ -9,6 +9,11 @@
 #include <dram.h>
 #include <mmio.h>
 #include <spinlock.h>
+#include <smccc.h>
+#include <smccc_helpers.h>
+#include <imx_sip.h>
+#include <interrupt_mgmt.h>
+#include <std_svc.h>
 
 static struct dram_info dram_info;
 
@@ -16,11 +21,8 @@ static struct dram_info dram_info;
 spinlock_t dfs_lock;
 /* IRQ used for DDR DVFS */
 #if defined(PLAT_IMX8M)
-static uint32_t irqs_used [] = {102, 109, 110, 111};
 /* ocram used to dram timing */
 static uint8_t dram_timing_saved[13 * 1024] __aligned(8);
-#else
-static uint32_t irqs_used[] = {74, 75, 76, 77};
 #endif
 static volatile uint32_t wfe_done;
 static volatile bool wait_ddrc_hwffc_done = true;
@@ -155,6 +157,35 @@ static bool is_bypass_mode_enabled(struct dram_timing_info *info)
 		return true;
 }
 
+/* EL3 SGI-8 handler */
+static uint64_t waiting_dvfs(uint32_t id, uint32_t flags,
+				void *handle, void *cookie)
+{
+	uint64_t mpidr = read_mpidr_el1();
+	unsigned int cpu_id = MPIDR_AFFLVL0_VAL(mpidr);
+	uint32_t irq;
+
+	irq = plat_ic_acknowledge_interrupt();
+	if (irq < 1022U) {
+		plat_ic_end_of_interrupt(irq);
+	}
+
+	/* set the WFE done status */
+	spin_lock(&dfs_lock);
+	wfe_done |= (1 << cpu_id * 8);
+	dsb();
+	spin_unlock(&dfs_lock);
+
+	while (1) {
+		/* ddr frequency change done */
+		wfe();
+		if (!wait_ddrc_hwffc_done)
+			break;
+	}
+
+	return 0;
+}
+
 void dram_info_init(unsigned long dram_timing_base)
 {
 	uint32_t current_fsp, ddr_type, ddrc_mstr;
@@ -196,6 +227,16 @@ void dram_info_init(unsigned long dram_timing_base)
 		dcsw_op_all(DCCSW);
 		ddr4_swffc(&dram_info, 0x0);
 	}
+
+	/* register the SGI handler for DVFS */
+	uint64_t flags = 0;
+	uint64_t rc;
+
+	set_interrupt_rm_flag(flags, NON_SECURE);
+	rc = register_interrupt_type_handler(INTR_TYPE_EL3, waiting_dvfs, flags);
+
+	if(rc)
+		panic();
 }
 
 void dram_enter_retention(void)
@@ -214,7 +255,41 @@ void dram_exit_retention(void)
 		ddr4_exit_retention();
 }
 
+/*
+ * For each freq return the following info:
+ *
+ * r1: data rate
+ * r2: 1 + dram_core parent
+ * r3: 1 + dram_alt parent index
+ * r4: 1 + dram_apb parent index
+ *
+ * The parent indices can be used by an OS who manages source clocks to enabled
+ * them ahead of the switch.
+ *
+ * A parent value of "0" means "don't care".
+ *
+ * Current implementation of freq switch is hardcoded in
+ * plat/imx/common/imx8m/clock.c but in theory this can be enhanced to support
+ * a wide variety of rates.
+ */
+int dram_dvfs_get_freq_info(void *handle, u_register_t index)
+{
+	switch (index) {
+	case 0: SMC_RET4(handle, dram_info.timing_info->fsp_table[0],
+				1, 0, 5);
+	case 1: SMC_RET4(handle, dram_info.timing_info->fsp_table[1],
+				2, 2, 4);
+	case 2: SMC_RET4(handle, dram_info.timing_info->fsp_table[2],
+				2, 3, 3);
+	case 3: SMC_RET4(handle, dram_info.timing_info->fsp_table[3],
+				1, 0, 0);
+	default:
+		SMC_RET1(handle, -3);
+	}
+}
+
 int dram_dvfs_handler(uint32_t smc_fid,
+			void *handle,
 			u_register_t x1,
 			u_register_t x2,
 			u_register_t x3)
@@ -224,7 +299,7 @@ int dram_dvfs_handler(uint32_t smc_fid,
 	unsigned int target_freq = x1;
 	uint32_t online_cores = x2;
 
-	if (target_freq == 0xf) {
+	if (x1 == IMX_SIP_DDR_DVFS_WAIT_CHANGE) {
 		/* set the WFE done status */
 		spin_lock(&dfs_lock);
 		wfe_done |= (1 << cpu_id * 8);
@@ -234,33 +309,38 @@ int dram_dvfs_handler(uint32_t smc_fid,
 		while (1) {
 			/* ddr frequency change done */
 			wfe();
-			if (!wait_ddrc_hwffc_done) {
+			if (!wait_ddrc_hwffc_done)
 				break;
-			}
 		}
-	} else {
+	} else if (x1 == IMX_SIP_DDR_DVFS_GET_FREQ_COUNT) {
+		int i;
+		for (i = 0; i < 4; ++i)
+			if (!dram_info.timing_info->fsp_table[i])
+				break;
+		SMC_RET1(handle, i);
+	} else if (x1 == IMX_SIP_DDR_DVFS_GET_FREQ_INFO) {
+		return dram_dvfs_get_freq_info(handle, x2);
+	} else if (x1 < 4) {
 		wait_ddrc_hwffc_done = true;
 		dsb();
-		/* trigger the IRQ */
-		for (int i = 0; i < 4; i++) {
-			int irq = irqs_used[i] % 32;
-			if (cpu_id != i && (online_cores & (0x1 << (i * 8)))) {
-				mmio_write_32(0x38800204 + (irqs_used[i] / 32) * 4, (1 << irq));
-			}
-		}
+
+		/* trigger the SGI to info other cores */
+		for (int i = 0; i < PLATFORM_CORE_COUNT; i++)
+			if (cpu_id != i && (online_cores & (0x1 << (i * 8))))
+				plat_ic_raise_el3_sgi(0x8, i);
 
 		/* make sure all the core in WFE */
 		online_cores &= ~(0x1 << (cpu_id * 8));
-		while (1) {
 #if defined(PLAT_IMX8M)
-			mmio_write_32(0x30340004, mmio_read_32(0x30340004) | (1 << 12));
+		for (int i = 0; i < 4; i++) {
+			if (i != cpu_id && online_cores & (1 << (i * 8)))
+				imx_gpc_core_wake(1 << i);
+		}
 #endif
+		while (1) {
 			if (online_cores == wfe_done)
 				break;
 		}
-#if defined(PLAT_IMX8M)
-		mmio_write_32(0x30340004, mmio_read_32(0x30340004) & ~(1 << 12));
-#endif
 
 		/* flush the L1/L2 cache */
 		dcsw_op_all(DCCSW);
@@ -277,7 +357,9 @@ int dram_dvfs_handler(uint32_t smc_fid,
 		dsb();
 		sev();
 		isb();
+
+		SMC_RET1(handle, 0);
 	}
 
-	return 0;
+	SMC_RET1(handle, SMC_UNK);
 }

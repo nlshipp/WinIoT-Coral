@@ -25,6 +25,7 @@ sc_rsrc_t secure_rsrcs[] = {
 	SC_R_CAAM_JR2_OUT,
 	SC_R_CAAM_JR3,
 	SC_R_CAAM_JR3_OUT,
+	SC_R_MU_4A,
 #endif
 	SC_R_IRQSTR_SCU2
 };
@@ -32,7 +33,6 @@ sc_rsrc_t secure_rsrcs[] = {
 /* resources that have register access for non-secure domain */
 sc_rsrc_t ns_access_allowed[] = {
 	SC_R_GIC,
-	SC_R_GIC_SMMU,
 	SC_R_GPT_0,
 	SC_R_CCI
 };

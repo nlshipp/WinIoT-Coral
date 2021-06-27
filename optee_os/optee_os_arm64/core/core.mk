@@ -94,8 +94,8 @@ libname = $(CFG_CRYPTOLIB_NAME)
 libdir = $(CFG_CRYPTOLIB_DIR)
 include mk/lib.mk
 
-ifeq ($(CFG_IMXCRYPT), y)
-libname = imxcrypt
+ifeq ($(CFG_NXPCRYPT), y)
+libname = nxpcrypt
 libdir = core/lib/lib$(libname)
 include mk/lib.mk
 endif

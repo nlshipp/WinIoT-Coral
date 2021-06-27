@@ -16,6 +16,7 @@ mx7s-flavorlist = mx7swarp7
 mx7ulp-flavorlist = mx7ulpevk
 mx8m-flavorlist = mx8mqevk
 mx8mm-flavorlist = mx8mmevk
+mx8mn-flavorlist = mx8mnevk
 mx8qm-flavorlist = mx8qmmek mx8qmlpddr4arm2
 mx8qx-flavorlist = mx8qxpmek mx8qxplpddr4arm2
 
@@ -28,7 +29,7 @@ else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx6ull-flavorlist)))
 $(call force,CFG_MX6,y)
 $(call force,CFG_MX6ULL,y)
 $(call force,CFG_TEE_CORE_NB_CORE,1)
-$(call force,CFG_IMX_CAAM,n)
+$(call force,CFG_NXP_CAAM,n)
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx6q-flavorlist)))
 $(call force,CFG_MX6,y)
 $(call force,CFG_MX6Q,y)
@@ -63,20 +64,21 @@ else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx6sl-flavorlist)))
 $(call force,CFG_MX6,y)
 $(call force,CFG_MX6SL,y)
 $(call force,CFG_TEE_CORE_NB_CORE,1)
-$(call force,CFG_IMX_CAAM,n)
+$(call force,CFG_NXP_CAAM,n)
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx6sll-flavorlist)))
 $(call force,CFG_MX6,y)
 $(call force,CFG_MX6SLL,y)
+$(call force,CFG_NO_SMP,y)
 $(call force,CFG_TEE_CORE_NB_CORE,1)
-$(call force,CFG_IMX_CAAM,n)
+$(call force,CFG_NXP_CAAM,n)
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx7d-flavorlist)))
 $(call force,CFG_MX7,y)
 $(call force,CFG_TEE_CORE_NB_CORE,2)
-CFG_BUSFREQ ?= n
+CFG_BUSFREQ ?= y
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx7s-flavorlist)))
 $(call force,CFG_MX7,y)
 $(call force,CFG_TEE_CORE_NB_CORE,1)
-CFG_BUSFREQ ?= n
+CFG_BUSFREQ ?= y
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx7ulp-flavorlist)))
 $(call force,CFG_MX7ULP,y)
 $(call force,CFG_TEE_CORE_NB_CORE,1)
@@ -93,26 +95,29 @@ $(call force,CFG_MX8MM,y)
 $(call force,CFG_ARM64_core,y)
 $(call force,CFG_TEE_CORE_NB_CORE,4)
 $(call force,CFG_IMX_LPUART,n)
+else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx8mn-flavorlist)))
+$(call force,CFG_MX8MN,y)
+$(call force,CFG_ARM64_core,y)
+$(call force,CFG_TEE_CORE_NB_CORE,4)
+$(call force,CFG_IMX_LPUART,n)
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx8qm-flavorlist)))
 $(call force,CFG_MX8QM,y)
 $(call force,CFG_ARM64_core,y)
 $(call force,CFG_TEE_CORE_NB_CORE,6)
-$(call force,CFG_IMX_CAAM,n)
+$(call force,CFG_NXP_CAAM,n)
 $(call force,CFG_TZC380,n)
 $(call force,CFG_CSU,n)
 $(call force,CFG_IMX_UART,n)
 $(call force,CFG_IMX_SNVS,n)
-$(call force,CFG_WITH_HAB,n)
 else ifneq (,$(filter $(PLATFORM_FLAVOR),$(mx8qx-flavorlist)))
 $(call force,CFG_MX8QX,y)
 $(call force,CFG_ARM64_core,y)
 $(call force,CFG_TEE_CORE_NB_CORE,4)
-$(call force,CFG_IMX_CAAM,n)
+$(call force,CFG_NXP_CAAM,n)
 $(call force,CFG_TZC380,n)
 $(call force,CFG_CSU,n)
 $(call force,CFG_IMX_UART,n)
 $(call force,CFG_IMX_SNVS,n)
-$(call force,CFG_WITH_HAB,n)
 else
 $(error Unsupported PLATFORM_FLAVOR "$(PLATFORM_FLAVOR)")
 endif
@@ -140,9 +145,8 @@ CFG_IMX_WDOG = n
 CFG_TZC380 ?= y
 CFG_IMX_UART ?= y
 CFG_IMX_LPUART ?= y
-CFG_IMX_CAAM ?= y
+CFG_NXP_CAAM ?= y
 CFG_IMX_SNVS ?= y
-CFG_WITH_HAB ?= y
 else
 # arm-v7 platforms Common definition
 ta-targets = ta_arm32
@@ -161,9 +165,8 @@ include core/arch/arm/cpu/cortex-a7.mk
 CFG_IMX_UART ?= y
 CFG_TZC380 ?= y
 CFG_CSU ?= y
-CFG_IMX_CAAM ?= y
+CFG_NXP_CAAM ?= y
 CFG_IMX_SNVS ?= y
-CFG_WITH_HAB ?= y
 $(call force,CFG_BOOT_SYNC_CPU,n)
 $(call force,CFG_BOOT_SECONDARY_REQUEST,n)
 $(call force,CFG_IMX_LPUART,n)
@@ -183,9 +186,8 @@ CFG_SCU ?= y
 CFG_BOOT_SYNC_CPU ?= y
 CFG_BOOT_SECONDARY_REQUEST ?= y
 CFG_ENABLE_SCTLR_RR ?= y
-CFG_IMX_CAAM ?= y
+CFG_NXP_CAAM ?= y
 CFG_IMX_SNVS ?= y
-CFG_WITH_HAB ?= y
 $(call force,CFG_IMX_LPUART,n)
 endif
 
@@ -197,9 +199,8 @@ CFG_INIT_CNTVOFF ?= y
 CFG_IMX_UART ?= y
 CFG_TZC380 ?= y
 CFG_CSU ?= y
-CFG_IMX_CAAM ?= y
+CFG_NXP_CAAM ?= y
 CFG_IMX_SNVS ?= y
-CFG_WITH_HAB ?= y
 $(call force,CFG_IMX_LPUART,n)
 endif
 
@@ -208,8 +209,7 @@ ifeq ($(filter y, $(CFG_MX7ULP)), y)
 include core/arch/arm/cpu/cortex-a7.mk
 CFG_IMX_LPUART ?= y
 $(call force,CFG_BOOT_SECONDARY_REQUEST,n)
-CFG_IMX_CAAM ?= y
-CFG_WITH_HAB ?= y
+CFG_NXP_CAAM ?= y
 $(call force,CFG_IMX_UART,n)
 endif
 
@@ -442,6 +442,11 @@ CFG_DDR_SIZE ?= 0x80000000
 CFG_UART_BASE ?= UART2_BASE
 endif
 
+ifneq (,$(filter $(PLATFORM_FLAVOR),mx8mnevk))
+CFG_DDR_SIZE ?= 0x80000000
+CFG_UART_BASE ?= UART2_BASE
+endif
+
 ifneq (,$(filter $(PLATFORM_FLAVOR),mx8qmmek))
 CFG_DDR_SIZE ?= 0x80000000
 CFG_UART_BASE ?= UART0_BASE
@@ -468,13 +473,22 @@ CFG_IMX_WDOG ?= y
 $(call force,CFG_IMX_OCRAM,y)
 endif
 
-ifeq ($(CFG_IMX_CAAM),y)
+# Enable DEK blob encapsulation requires DEK blob PTA
+# Note: CAAM must be enabled manually
+ifeq ($(CFG_GEN_DEK_BLOB),y)
+CFG_DEK_BLOB_PTA ?=y
+endif
+
+ifeq ($(CFG_NXP_CAAM),y)
 # currently disable the use of CAAM in OP-TEE
-CFG_IMXCRYPT ?= n
+CFG_NXPCRYPT ?= n
+else
+$(call force,CFG_NXPCRYPT,n)
+$(call force,CFG_WITH_SOFTWARE_PRNG,y)
+endif
 
 # Cryptographic configuration
 include core/arch/arm/plat-imx/crypto_conf.mk
-else
-$(call force,CFG_IMXCRYPT,n)
-$(call force,CFG_WITH_SOFTWARE_PRNG,y)
-endif
+
+# Read 40 FAT FS entries at once from RPMB storage
+CFG_RPMB_FS_RD_ENTRIES ?= 40

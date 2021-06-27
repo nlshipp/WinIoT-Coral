@@ -2,7 +2,7 @@
 * iMX8 MQ Differentiated System Description Table Fields (DSDT)
 *
 *  Copyright (c) 2018, Microsoft Corporation. All rights reserved.
-*  Copyright 2019 NXP
+*  Copyright 2020 NXP
 *
 *  This program and the accompanying materials
 *  are licensed and made available under the terms and conditions of the BSD License
@@ -35,6 +35,8 @@ DefinitionBlock("DsdtTable.aml", "DSDT", 5, "MSFT", "EDK2", 1) {
     include("Dsdt-TrEE.asl")
     include("Dsdt-PCIe.asl")
     include("Dsdt-Gfx.asl")
+    include("Dsdt-Vpu.asl")
     include("Dsdt-Pwm.asl")
+    include("Dsdt_TCPC.asl")
   }
 }

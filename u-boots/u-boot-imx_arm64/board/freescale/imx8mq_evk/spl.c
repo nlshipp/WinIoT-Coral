@@ -19,9 +19,11 @@
 #include <asm/arch/clock.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
+#include <asm/mach-imx/hab.h>
 #include <fsl_esdhc.h>
 #include <mmc.h>
 #include <asm/arch/imx8m_ddr.h>
+#include <fuse.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -254,3 +256,65 @@ void board_init_f(ulong dummy)
 
 	board_init_r(NULL, 0);
 }
+
+#ifdef CONFIG_SPL_BOARD_PROVISION
+
+static void fuse_srkh(void)
+{
+	uint32_t srkh[8] = { 0 };
+	const u32 word_count = sizeof(srkh) / sizeof(srkh[0]);
+	char *current = CONFIG_SPL_HAB_SRKH, *next;
+	bool is_valid = true;
+	u32 i = 0;
+
+	do {
+		srkh[i] = simple_strtoul(current, &next, 0);
+		is_valid = srkh[i];
+		current = next + 1;
+	} while (++i < word_count && is_valid);
+
+	is_valid = is_valid && current[-1] == '\0';
+
+	for (i = 0; i < word_count; i++) {
+		printf("SRKH%d: %#010x\n", i, srkh[i]);
+	}
+
+	if (!is_valid) {
+		printf("\nInvalid SRKH\n");
+		return;
+	}
+
+#ifdef CONFIG_SPL_BOARD_PROVISION_FUSES
+	puts("Provisioning SRKH fuses\n");
+	for (i = 0; i < word_count; i++) {
+		fuse_prog(6 + i / 4, i % 4, srkh[i]);
+	}
+
+	//Set SoC to Closed security state to enforce HAB
+	fuse_prog(1, 3, 0x2000000);
+#else
+	puts("Set SPL_BOARD_PROVISION_FUSES to fuse SRKH\n");
+#endif
+}
+
+void spl_board_provision(void) {
+	hab_rvt_report_status_t *hab_rvt_report_status;
+	hab_rvt_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+	enum hab_config config = 0;
+	enum hab_state state = 0;
+	hab_rvt_report_status(&config, &state);
+	printf("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
+		config, state);
+
+	// System has secure booted, no need to run the provisioning flow
+	if (state == HAB_STATE_TRUSTED || state == HAB_STATE_SECURE) {
+		return;
+	}
+
+	fuse_srkh();
+
+	puts("Device in provisioning mode and not High Assurance Booted. Resetting now!\n");
+	do_reset(NULL, 0, 0, NULL);
+}
+
+#endif

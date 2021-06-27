@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<identity xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DefaultCoreArm64" namespace="Appx" owner="$(OEMNAME)" legacyName="$(OEMNAME).Appx.DefaultCoreArm64" xmlns="urn:Microsoft.CompPlat/ManifestSchema.v1.00">
+    <onecorePackageInfo targetPartition="MainOS" releaseType="Production" ownerType="OEM" />
+    <files>
+        <file destinationDir="$(runtime.windows)\Provisioning\Packages" source="$(BLDDIR)\ppkgs\Appx.DefaultCoreArm64.ppkg" name="Appx.DefaultCoreArm64.ppkg" />
+        <file destinationDir="$(runtime.windows)\Provisioning\Packages" source="$(BLDDIR)\ppkgs\Appx.DefaultCoreArm64.cat" name="Appx.DefaultCoreArm64.cat" />
+    </files>
+</identity>

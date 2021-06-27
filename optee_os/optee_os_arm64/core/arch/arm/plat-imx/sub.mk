@@ -1,10 +1,10 @@
 global-incdirs-y += .
 
 srcs-y += main.c
-srcs-$(CFG_MX6)$(CFG_MX7)$(CFG_MX7ULP)$(CFG_MX8M)$(CFG_MX8MM) += imx-common.c
+srcs-$(CFG_MX6)$(CFG_MX7)$(CFG_MX7ULP)$(CFG_MX8M)$(CFG_MX8MM)$(CFG_MX8MN) += imx-common.c
 srcs-$(CFG_MX6)$(CFG_MX7) += imx_src.c mmdc.c
 srcs-$(CFG_MX7) += gpcv2.c
-srcs-$(CFG_MX6)$(CFG_MX7)$(CFG_MX7ULP)$(CFG_MX8M)$(CFG_MX8MM) += imx_ocotp.c
+srcs-$(CFG_MX6)$(CFG_MX7)$(CFG_MX7ULP)$(CFG_MX8M)$(CFG_MX8MM)$(CFG_MX8MN) += imx_ocotp.c
 
 srcs-$(_CFG_CRYPTO_WITH_HUK) += imx_huk.c
 
@@ -29,9 +29,11 @@ srcs-$(CFG_DT) += imx_dt.c
 srcs-$(CFG_CSU) += imx_csu.c
 srcs-$(CFG_SCU) += imx_scu.c
 srcs-$(CFG_IMX_OCRAM) += imx_ocram.c
-srcs-$(CFG_MANUFACT_PROTEC_PTA) += pta/pta_manufact_protec_mx.c
 srcs-$(CFG_XRDC) += xrdc.c
 subdirs-$(CFG_PSCI_ARM32) += pm
 
 # Build the busfreq module
 subdirs-$(CFG_BUSFREQ) += busfreq
+
+# Build the imx-PTA
+subdirs-y += pta

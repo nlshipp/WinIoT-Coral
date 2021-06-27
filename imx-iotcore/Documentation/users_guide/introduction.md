@@ -4,7 +4,7 @@ Introduction {#introduction}
 The i.MX Windows 10 IoT BSP is a collection of binary files, source code, and support files you can
 use to create a bootable Windows 10 IoT image for i.MX development systems.
 
-Before you start, see the [Feature List Per Board chapter](#feature-list). This section lists all the i.MX boards covered by this BSP and also contains a list of possible features.
+Before you start, see the [Feature List per Board chapter](#feature-list). This section lists all the i.MX boards covered by this BSP and also contains a list of possible features.
 
 If you have downloaded a standalone Windows 10 IoT core image, please go to [Flash a Windows IoT Core image](#flash-image) to create a bootable SD card.
 

@@ -1,0 +1,21 @@
+NXP Software Content Register
+
+Release - Windows 10 IoT 1.1.0 (imx-iotcore package)
+April 2020
+Outgoing License:            LA_OPT_NXP_Software_License
+                             Production Use, Section 2.3 applies
+License file:                ./LA_OPT_NXP_Software_License.htm
+
+--------------------------------------------
+
+Package:                     imx-iotcore
+License:                     MIT
+License Files:               ./imx-iotcore/LICENSE
+Package Category:            BSP imx-iotcore
+Type of content:             Source code
+Description and comments:    Windows 10 IoT Core for NXP i.MX Processors
+Release Location:            ./imx-iotcore
+Origin:                      Microsoft (MIT) - https://github.com/ms-iot/imx-iotcore
+
+
+--------------------------------------------

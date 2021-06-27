@@ -657,6 +657,10 @@ struct mipi_dsi_client_dev rm67191_dev = {
 
 #define FSL_SIP_GPC			0xC2000000
 #define FSL_SIP_CONFIG_GPC_PM_DOMAIN	0x3
+#define VPU_BUS				5
+#define VPU_G1				6
+#define VPU_G2				7
+#define VPU_H1				8
 #define DISPMIX				9
 #define MIPI				10
 

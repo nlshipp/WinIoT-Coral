@@ -132,8 +132,8 @@ def main():
 	tee_pageable_fname = args.tee_pageable_bin
 	pager_input_size   = os.path.getsize(tee_pager_fname);
 	paged_input_size   = os.path.getsize(tee_pageable_fname);
-	hash_size          = paged_input_size / (4 * 1024) * \
-			     hashlib.sha256().digest_size
+	hash_size          = int(paged_input_size / (4 * 1024) * \
+			     hashlib.sha256().digest_size)
 
 	if paged_input_size % (4 * 1024) != 0:
 		print("Error: pageable size not a multiple of 4K:" + \

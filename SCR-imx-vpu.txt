@@ -1,0 +1,35 @@
+NXP Software Content Register
+
+Release - Windows 10 IoT 1.1.0 (imx-iotcore package)
+April 2020
+Outgoing License:          LA_OPT_NXP_Software_License
+                           Production Use, Section 2.3 applies
+License file:              ./LA_OPT_NXP_Software_License.htm
+
+--------------------------------------------
+Package:                   imx-vpu-hantro
+Outgoing License:          LA_OPT_NXP_Software_License
+License Files:             ./imx-iotcore/driver/video/imx-vpu-hantro/COPYING
+Package Category:          Multimedia
+Type of content:           Source code
+Description and comments:  i.MX VPU library
+Release Location:          ./imx-iotcore/driver/video/imx-vpu-hantro
+Origin:                    VeriSilicon Inc. (proprietary)
+                           The WebM project by Google Inc. (BSD-3-clause) https://bugs.chromium.org/p/webm/issues/list -- decoder_sw/software/source/vp9/;  decoder_sw/software/test/common/vpxfilereader.c; decoder_sw/software/test/vp8/vp8filereader.c
+                           MD5 - Command Line Mesage Digest Utility by Colin Plumb (Public Domain) http://www.fourmilab.ch/md5/ -- decoder_sw/software/test/common/swhw/md5.c&h
+                           Khronos Group - OpenMAX (version?) (MIT) https://www.khronos.org/openmax/ -- openmax_il/headers/
+
+--------------------------------------------
+
+Package:                   imx-vpuwrap
+Outgoing License:          LA_OPT_NXP_Software_License
+License File:              ./imx-iotcore/driver/video/imx-vpuwrap/COPYING
+Package Category:          Multimedia
+Type of content:           Source code
+Description and comments:  i.MX VPU wrapper library
+Release Location:          ./imx-iotcore/driver/video/imx-vpuwrap
+Origin:                    NXP (proprietary)
+                           Freescale Semiconductor, Inc. (proprietary)
+                           sqlite (Public Domain) - http://www.hwaci.com/sw/sqlite/index.html
+
+--------------------------------------------

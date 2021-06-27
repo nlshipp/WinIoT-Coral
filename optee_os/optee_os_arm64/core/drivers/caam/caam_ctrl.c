@@ -11,9 +11,9 @@
 #include <initcall.h>
 #include <tee_api_types.h>
 
-#ifdef CFG_IMXCRYPT
-/* Library i.MX includes */
-#include <libimxcrypt.h>
+#ifdef CFG_NXPCRYPT
+/* Library NXP includes */
+#include <libnxpcrypt.h>
 #endif
 
 /* Local includes */
@@ -21,6 +21,9 @@
 #include "caam_jr.h"
 #include "caam_rng.h"
 #include "caam_pwr.h"
+#ifdef CFG_CRYPTO_SM_HW
+#include "caam_sm.h"
+#endif
 #ifdef CFG_CRYPTO_PK_HW
 #include "caam_acipher.h"
 #endif
@@ -60,7 +63,7 @@
  * @retval  TEE_ERROR_GENERIC        Generic Error (driver init failure)
  * @retval  TEE_ERROR_NOT_SUPPORTED  Driver not supported
  */
-#ifdef CFG_IMXCRYPT
+#ifdef CFG_NXPCRYPT
 TEE_Result crypto_driver_init(void)
 #else
 static TEE_Result crypto_driver_init(void)
@@ -104,6 +107,15 @@ static TEE_Result crypto_driver_init(void)
 		goto exit_init;
 	}
 
+#ifdef CFG_CRYPTO_SM_HW
+	/* Initialize the Secure memory module */
+	retstatus = caam_sm_init(&jr_cfg);
+	if (retstatus != CAAM_NO_ERROR) {
+		retresult = TEE_ERROR_GENERIC;
+		goto exit_init;
+	}
+#endif // CFG_CRYPTO_SM_HW
+
 #ifdef CFG_CRYPTO_HASH_HW
 	/* Initialize the Hash Module */
 	retstatus = caam_hash_init(jr_cfg.base);
@@ -126,7 +138,8 @@ static TEE_Result crypto_driver_init(void)
 	/* Initialize the MP Module */
 	retstatus = caam_mp_init(jr_cfg.base);
 
-	if (retstatus != CAAM_NO_ERROR) {
+	if ((retstatus != CAAM_NO_ERROR) &&
+			(retstatus != CAAM_NOT_SUPPORTED)) {
 		retresult = TEE_ERROR_GENERIC;
 		goto exit_init;
 	}
@@ -176,7 +189,7 @@ static TEE_Result crypto_driver_init(void)
 exit_init:
 	/*
 	 * Configure Job Rings to NS World
-	 * If the Crypto IMX Library is not used (CFG_IMXCRYPT = n)
+	 * If the Crypto NXP Library is not used (CFG_NXPCRYPT = n)
 	 * JR0 is freed to be Non-Secure
 	 */
 	if (jr_cfg.base)
@@ -186,14 +199,13 @@ exit_init:
 	return retresult;
 }
 
-#ifndef CFG_IMXCRYPT
+#ifndef CFG_NXPCRYPT
 driver_init(crypto_driver_init);
 #endif
 
-#ifdef CFG_WITH_HAB
 /**
  * @brief   Crypto driver late initialization function to complete
- *          CAAM operation in case of HAB usage on Closed devices
+ *          CAAM operation
  *
  * @retval  TEE_SUCCESS        Success
  * @retval  TEE_ERROR_GENERIC  Generic Error (driver init failure)
@@ -210,4 +222,3 @@ static TEE_Result init_caam_late(void)
 		return TEE_ERROR_GENERIC;
 }
 driver_init_late(init_caam_late);
-#endif

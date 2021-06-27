@@ -13,6 +13,7 @@
 #define FSL_SIP_CONFIG_GPC_SET_WAKE	0x02
 #define FSL_SIP_CONFIG_GPC_PM_DOMAIN	0x03
 #define FSL_SIP_CONFIG_GPC_SET_AFF	0x04
+#define FSL_SIP_CONFIG_GPC_CORE_WAKE	0x05
 
 #define IMX_SIP_CPUFREQ			0xC2000001
 #define IMX_SIP_SET_CPUFREQ		0x00
@@ -30,7 +31,10 @@
 #define IMX_SIP_BUILDINFO			0xC2000003
 #define IMX_SIP_BUILDINFO_GET_COMMITHASH	0x00
 
-#define FSL_SIP_DDR_DVFS		0xc2000004
+#define IMX_SIP_DDR_DVFS		0xc2000004
+#define IMX_SIP_DDR_DVFS_WAIT_CHANGE	0x0F
+#define IMX_SIP_DDR_DVFS_GET_FREQ_COUNT	0x10
+#define IMX_SIP_DDR_DVFS_GET_FREQ_INFO	0x11
 
 #define FSL_SIP_SRC			0xc2000005
 #define FSL_SIP_SRC_M4_START		0x00
@@ -80,7 +84,7 @@ int imx_misc_set_temp_handler(uint32_t smc_fid, u_register_t x1,
 				u_register_t x4);
 #endif
 
-#if defined(PLAT_IMX8M) || defined(PLAT_IMX8MM)
+#if defined(PLAT_IMX8M) || defined(PLAT_IMX8MM) || defined(PLAT_IMX8MN)
 int imx_gpc_handler(uint32_t  smc_fid, u_register_t x1,
 	u_register_t x2, u_register_t x3);
 int lpddr4_dvfs_handler(uint32_t  smc_fid, u_register_t x1,
@@ -93,8 +97,8 @@ int imx_hab_handler(uint32_t smc_fid, u_register_t x1,
 	u_register_t x2, u_register_t x3, u_register_t x4);
 int imx_noc_handler(uint32_t smc_fid, u_register_t x1,
 		u_register_t x2, u_register_t x3);
-int dram_dvfs_handler(uint32_t smc_fid, u_register_t x1,
-	 u_register_t x2, u_register_t x3);
+int dram_dvfs_handler(uint32_t smc_fid, void *handle,
+	u_register_t x1, u_register_t x2, u_register_t x3);
 #endif
 
 uint64_t imx_buildinfo_handler(uint32_t smc_fid, u_register_t x1,

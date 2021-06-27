@@ -2,6 +2,7 @@
 * Description: NXP iMX8MQ EVK Resource Hub Proxy
 *
 *  Copyright (c) 2018, Microsoft Corporation. All rights reserved.
+*  Copyright 2020 NXP
 *
 *  This program and the accompanying materials
 *  are licensed and made available under the terms and conditions of the BSD License
@@ -21,13 +22,11 @@ Device(RHPX)
 
   Name(_CRS, ResourceTemplate()
   {
-    // Index 0
-    I2CSerialBus(0xFFFF,, 0,, "\\_SB.I2C1",,,,)
 
-    // Index 1
+    // Index 0
     I2CSerialBus(0xFFFF,, 0,, "\\_SB.I2C2",,,,)
 
-    // Index 2
+    // Index 1
     I2CSerialBus(0xFFFF,, 0,, "\\_SB.I2C3",,,,)
 
     // GPIO5_IO16 PAD_I2C2_SCL - J801 pin 1
@@ -37,6 +36,7 @@ Device(RHPX)
     // GPIO5_IO17 PAD_I2C2_SDA - J801 pin 3
     GpioIO(Shared, PullNone, 0, 0, IoRestrictionNone, "\\_SB.GPIO", 0, ResourceConsumer, , ) { 145 } // 4 * 32 + 17
     GpioInt(Edge, ActiveBoth, Shared, PullNone, 0, "\\_SB.GPIO",) { 145 }
+
   })
 
   Name(_DSD, Package()
@@ -44,10 +44,9 @@ Device(RHPX)
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
     Package()
     {
-      // I2C busses 1-3
-      Package(2) { "bus-I2C-I2C1", Package() { 0 }},
-      Package(2) { "bus-I2C-I2C2", Package() { 1 }},
-      Package(2) { "bus-I2C-I2C3", Package() { 2 }},
+      // I2C busses 0-1
+      Package(2) { "bus-I2C-I2C2", Package() { 0 }},
+      Package(2) { "bus-I2C-I2C3", Package() { 1 }},
 
       // GPIO Pin Count and supported drive modes
       Package (2) { "GPIO-PinCount", 157 },

@@ -28,6 +28,16 @@
 #include "iMX8ClkPwr.h"
 #include "iMX8MIoMux.h"
 
+#define IMX_SIP_CONFIG_GPC_PM_DOMAIN    0x03
+#define IMX_PCIE1_PD                    1
+#define IMX_VPU_BUS                     5
+#define IMX_VPU_G1                      6
+#define IMX_VPU_G2                      7
+#define IMX_VPU_H1                      8
+#define IMX_PCIE2_PD                    10
+
+#define IMX_VPU_BLK_CTL_BASE            0x38320000
+
 ARM_CORE_INFO iMX8Ppi[] =
 {
   {
@@ -212,18 +222,10 @@ VOID PcieInit ()
   ARM_SMC_ARGS smc_args;
 
   /* Enable PCIe1 power domain */
-  smc_args.Arg0 = 0xC2000000;   // FSL_SIP_GPC
-  smc_args.Arg1 = 0x03;         // FSL_SIP_CONFIG_GPC_PM_DOMAIN
-  smc_args.Arg2 = 0x01;         // Domain ID = PCIe1
-  smc_args.Arg3 = 0x01;         // Enable domain
-  smc_args.Arg4 = 0x00;
+  imx_fill_sip(IMX_SIP_GPC, IMX_SIP_CONFIG_GPC_PM_DOMAIN, IMX_PCIE1_PD, 0x01, 0x00, smc_args);
   ArmCallSmc(&smc_args);
   /* Enable PCIe2 power domain */
-  smc_args.Arg0 = 0xC2000000;   // FSL_SIP_GPC
-  smc_args.Arg1 = 0x03;         // FSL_SIP_CONFIG_GPC_PM_DOMAIN
-  smc_args.Arg2 = 0x0A;         // Domain ID = PCIe2
-  smc_args.Arg3 = 0x01;         // Enable domain
-  smc_args.Arg4 = 0x00;
+  imx_fill_sip(IMX_SIP_GPC, IMX_SIP_CONFIG_GPC_PM_DOMAIN, IMX_PCIE2_PD, 0x01, 0x00, smc_args);
   ArmCallSmc(&smc_args);
 
 #if FixedPcdGet32(PcdPcie1Enable)
@@ -310,6 +312,54 @@ VOID PwmInit()
 }
 
 /**
+  Initialize VPU block.
+**/
+VOID VpuInit()
+{
+  ARM_SMC_ARGS smc_args;
+
+  // Disable VPU_DEC clock root
+  CCM_CCGR_VPU_DEC = 0x00;
+  // Disable VA53 clock root
+  CCM_CCGR_VA53 = 0x00;
+  // Disable VP9 clock root
+  CCM_CCGR_VP = 0x00;
+
+  // Disable VPU BUS power domain
+  imx_fill_sip(IMX_SIP_GPC, IMX_SIP_CONFIG_GPC_PM_DOMAIN, IMX_VPU_BUS, 0x00, 0x00, smc_args);
+  ArmCallSmc(&smc_args);
+
+  // Configure VPU_BUS input clock to 800MHz (SYSTEM_PLL1)
+  CCM_TARGET_ROOT_VPU_BUS = CCM_TARGET_ROOT_MUX(1) | CCM_TARGET_ROOT_PRE_PODF(0) | CCM_TARGET_ROOT_POST_PODF(0) | CCM_TARGET_ROOT_ENABLE_MASK;
+  // Configure VPU_G1 input clock to 600MHz (VPU_PLL)
+  CCM_TARGET_ROOT_VPU_G1 = CCM_TARGET_ROOT_MUX(1) | CCM_TARGET_ROOT_PRE_PODF(0) | CCM_TARGET_ROOT_POST_PODF(0) | CCM_TARGET_ROOT_ENABLE_MASK;
+  // Configure VPU_G2 input clock to 600MHz (VPU_PLL)
+  CCM_TARGET_ROOT_VPU_G2 = CCM_TARGET_ROOT_MUX(1) | CCM_TARGET_ROOT_PRE_PODF(0) | CCM_TARGET_ROOT_POST_PODF(0) | CCM_TARGET_ROOT_ENABLE_MASK;
+
+  // Enable VPU_DEC clock root
+  CCM_CCGR_VPU_DEC = 0x03;
+  // Enable VA53 clock root
+  CCM_CCGR_VA53 = 0x03;
+  // Enable VP9 clock root
+  CCM_CCGR_VP = 0x03;
+
+  // Enable VPU BUS power domain
+  imx_fill_sip(IMX_SIP_GPC, IMX_SIP_CONFIG_GPC_PM_DOMAIN, IMX_VPU_BUS, 0x01, 0x00, smc_args);
+  ArmCallSmc(&smc_args);
+
+  // VPUMIX G1/G2 soft reset control
+  *((volatile UINT32 *)(IMX_VPU_BLK_CTL_BASE + 0x00)) = 0x03;
+  // VPUMIX G1/G2 block clock enable
+  *((volatile UINT32 *)(IMX_VPU_BLK_CTL_BASE + 0x04)) = 0x03;
+  // G1 fuse decoder enable
+  *((volatile UINT32 *)(IMX_VPU_BLK_CTL_BASE + 0x08)) = 0xFFFFFFFF;
+  // G1 fuse pp enable
+  *((volatile UINT32 *)(IMX_VPU_BLK_CTL_BASE + 0x0C)) = 0xFFFFFFFF;
+  // G2 fuse decoder enable
+  *((volatile UINT32 *)(IMX_VPU_BLK_CTL_BASE + 0x10)) = 0xFFFFFFFF;
+}
+
+/**
   Initialize controllers that must setup at the early stage
 **/
 RETURN_STATUS ArmPlatformInitialize(IN UINTN MpId)
@@ -329,6 +379,7 @@ RETURN_STATUS ArmPlatformInitialize(IN UINTN MpId)
   PcieInit ();
 #endif
   PwmInit();
+  VpuInit();
   return RETURN_SUCCESS;
 }
 

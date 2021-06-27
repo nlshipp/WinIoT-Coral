@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    hal_ctrl.h
  *
@@ -9,9 +9,9 @@
 #ifndef __HAL_CTRL_H__
 #define __HAL_CTRL_H__
 
-#ifdef CFG_IMXCRYPT
-/* Library i.MX includes */
-#include <libimxcrypt.h>
+#ifdef CFG_NXPCRYPT
+/* Library NXP includes */
+#include <libnxpcrypt.h>
 #endif
 
 /**
@@ -35,10 +35,11 @@ size_t hal_ctrl_get_mpmr_size(void);
  *
  * @param[in] ctrl_addr  Controller base address
  *
- * @retval true       Success
- * @retval false      Failure
+ * @retval MPCurve Value read if device closed
+ * @retval 0                  if not programmed
+ * @retval (-1)               if not supported
  */
-bool hal_ctrl_is_mpcurve(vaddr_t ctrl_addr __maybe_unused);
+int8_t hal_ctrl_is_mpcurve(vaddr_t ctrl_addr);
 
 /**
  * @brief   Get the MPMR content
@@ -55,7 +56,7 @@ void hal_ctrl_get_mpmr(vaddr_t ctrl_addr, uint8_t *val_scfgr);
  * @param[in] msg_mpmr   Buffer with the message and length
  *                       to fill the MPMR content
  */
-void hal_ctrl_fill_mpmr(vaddr_t ctrl_addr, struct imxcrypt_buf *msg_mpmr);
+void hal_ctrl_fill_mpmr(vaddr_t ctrl_addr, struct nxpcrypt_buf *msg_mpmr);
 #endif
 
 /**

@@ -3,6 +3,7 @@
 # The board is iMX6 ULL with 512MB DRAM
 #
 #  Copyright (c) 2018 Microsoft Corporation. All rights reserved.
+#  Copyright 2020 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -29,7 +30,6 @@
   DEFINE CONFIG_HEADLESS          = TRUE
   DEFINE CONFIG_NOT_SECURE_UEFI   = TRUE
   DEFINE CONFIG_MEASURED_BOOT     = FALSE
-  DEFINE CONFIG_USB               = FALSE
   BOARD_DIR                       = NXP/$(BOARD_NAME)
   FLASH_DEFINITION                = $(BOARD_DIR)/$(BOARD_NAME).fdf
 

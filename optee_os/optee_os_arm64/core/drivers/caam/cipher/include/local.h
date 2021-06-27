@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    local.h
  *
@@ -9,9 +9,9 @@
 #ifndef __LOCAL_H__
 #define __LOCAL_H__
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_cipher.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_cipher.h>
 
 /*
  * Debug Macros
@@ -41,7 +41,11 @@
 /**
  * @brief    Maximum number of entry in the descriptor
  */
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_ENTRIES	19
+#else
 #define MAX_DESC_ENTRIES	14
+#endif
 
 /**
  * @brief   Definition of flags tagging which key(s) is required
@@ -63,7 +67,7 @@ struct cipheralg {
 
 	struct defkey def_key;     ///< Key size accepted
 
-	TEE_Result (*update)(struct imxcrypt_cipher_update *dupdate);
+	TEE_Result (*update)(struct nxpcrypt_cipher_update *dupdate);
 };
 
 /**
@@ -81,7 +85,7 @@ struct cipherdata {
 
 	struct caamblock blockbuf;       ///< Temporary Block buffer
 
-	enum imxcrypt_cipher_id algo_id; ///< Cipher Algorithm Id
+	enum nxpcrypt_cipher_id algo_id; ///< Cipher Algorithm Id
 	const struct cipheralg  *alg;    ///< Reference to the algo constants
 };
 
@@ -115,7 +119,7 @@ enum CAAM_Status do_block(struct cipherdata *ctx,
  * @retval TEE_ERROR_BAD_PARAMETERS  Bad Parameters
  * @retval TEE_ERROR_SHORT_BUFFER    Output buffer too short
  */
-TEE_Result do_update_cmac(struct imxcrypt_cipher_update *dupdate);
+TEE_Result do_update_cmac(struct nxpcrypt_cipher_update *dupdate);
 
 /**
  * @brief   Update of the cipher operation in xts mode.
@@ -127,6 +131,7 @@ TEE_Result do_update_cmac(struct imxcrypt_cipher_update *dupdate);
  * @retval TEE_ERROR_OUT_OF_MEMORY   Out of memory
  * @retval TEE_ERROR_BAD_PARAMETERS  Bad Parameters
  */
-TEE_Result do_update_xts(struct imxcrypt_cipher_update *dupdate);
+TEE_Result do_update_xts(struct nxpcrypt_cipher_update *dupdate);
 
 #endif /* __LOCAL_H__ */
+

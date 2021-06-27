@@ -167,6 +167,8 @@
 					 CONFIG_SYS_FSL_JR0_OFFSET)
 #define CONFIG_SYS_FSL_MAX_NUM_OF_SEC   1
 
+#define IMX_VPU_BLK_CTL_BASE 0x38330000
+
 #if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
 #include <asm/types.h>
 

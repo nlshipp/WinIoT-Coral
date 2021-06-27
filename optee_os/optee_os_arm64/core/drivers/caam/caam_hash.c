@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    caam_hash.c
  *
@@ -17,9 +17,9 @@
 #include <tee/cache.h>
 #include <utee_defines.h>
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_hash.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_hash.h>
 
 /* Local includes */
 #include "common.h"
@@ -28,6 +28,7 @@
 
 /* Utils includes */
 #include "utils_mem.h"
+#include "utils_status.h"
 
 /* Hal includes */
 #include "hal_ctrl.h"
@@ -112,7 +113,7 @@ static const struct hashalg hash_alg[MAX_HASH_SUPPORTED] = {
 		.size_digest = TEE_SHA384_HASH_SIZE,
 		.size_block  = TEE_MAX_HASH_SIZE * 2,
 		.size_ctx    = HASH_MSG_LEN + TEE_SHA512_HASH_SIZE,
-		.size_key    = 96,
+		.size_key    = 128,
 	},
 	{
 		/* sha512 */
@@ -150,7 +151,7 @@ struct hashdata {
 	struct caambuf key;             ///< HMAC split key
 	enum keytype   key_type;        ///< HMAC key type
 
-	enum imxcrypt_hash_id algo_id;  ///< Hash Algorithm Id
+	enum nxpcrypt_hash_id algo_id;  ///< Hash Algorithm Id
 	const struct hashalg  *alg;     ///< Reference to the algo constants
 };
 
@@ -169,12 +170,15 @@ static enum CAAM_Status do_reduce_key(const struct hashalg *alg,
 				const struct caambuf *inkey,
 				struct caambuf *outkey)
 {
+#ifdef	CFG_PHYS_64BIT
+#define KEY_REDUCE_DESC_ENTRIES	10
+#else
 #define KEY_REDUCE_DESC_ENTRIES	8
+#endif
 	enum CAAM_Status retstatus = CAAM_FAILURE;
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc    = NULL;
-	uint8_t       desclen = 1;
 
 	/* Allocate the job descriptor */
 	desc = caam_alloc_desc(KEY_REDUCE_DESC_ENTRIES);
@@ -183,20 +187,18 @@ static enum CAAM_Status do_reduce_key(const struct hashalg *alg,
 		goto exit_reduce;
 	}
 
-	desc[desclen++] = HASH_INITFINAL(alg->type);
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+	desc_add_word(desc, HASH_INITFINAL(alg->type));
 
 	/* Load the input key */
-	desc[desclen++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-	desc[desclen++] = inkey->paddr;
-	desc[desclen++] = inkey->length;
+	desc_add_word(desc, FIFO_LD_EXT(CLASS_2, MSG, LAST_C2));
+	desc_add_ptr(desc, inkey->paddr);
+	desc_add_word(desc, inkey->length);
 
 	/* Store key reduced */
-	desc[desclen++] = ST_NOIMM(CLASS_2, REG_CTX, outkey->length);
-	desc[desclen++] = outkey->paddr;
-
-	/* Set the descriptor Header with length */
-	desc[0] = DESC_HEADER(desclen);
-
+	desc_add_word(desc, ST_NOIMM(CLASS_2, REG_CTX, outkey->length));
+	desc_add_ptr(desc, outkey->paddr);
 	HASH_DUMPDESC(desc);
 
 	cache_operation(TEE_CACHECLEAN, inkey->data, inkey->length);
@@ -231,7 +233,11 @@ exit_reduce:
  */
 static TEE_Result do_split_key(void *ctx, const uint8_t *ikey, size_t ilen)
 {
+#ifdef	CFG_PHYS_64BIT
+#define KEY_COMPUTE_DESC_ENTRIES	10
+#else
 #define KEY_COMPUTE_DESC_ENTRIES	8
+#endif
 	TEE_Result    ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus;
 
@@ -245,8 +251,6 @@ static TEE_Result do_split_key(void *ctx, const uint8_t *ikey, size_t ilen)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t    desc     = NULL;
-	uint8_t          desclen  = 1;
-
 	HASH_TRACE("split key length %d", ilen);
 
 	inkey.data   = (uint8_t *)ikey;
@@ -258,7 +262,7 @@ static TEE_Result do_split_key(void *ctx, const uint8_t *ikey, size_t ilen)
 	}
 
 	/* Allocate the job descriptor */
-	desc = caam_alloc_desc(KEY_REDUCE_DESC_ENTRIES);
+	desc = caam_alloc_desc(KEY_COMPUTE_DESC_ENTRIES);
 	if (!desc) {
 		ret = TEE_ERROR_OUT_OF_MEMORY;
 		goto exit_split_key;
@@ -301,20 +305,18 @@ static TEE_Result do_split_key(void *ctx, const uint8_t *ikey, size_t ilen)
 		key.length = inkey.length;
 	}
 
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
 	/* Load either input key or the reduced input key into key register */
-	desc[desclen++] = LD_KEY_PLAIN(CLASS_2, REG, key.length);
-	desc[desclen++] = key.paddr;
+	desc_add_word(desc, LD_KEY_PLAIN(CLASS_2, REG, key.length));
+	desc_add_ptr(desc, key.paddr);
 	/* Split the key */
-	desc[desclen++] = HMAC_INIT_DECRYPT(alg->type);
-	desc[desclen++] = FIFO_LD_IMM(CLASS_2, MSG, LAST_C2, 0);
+	desc_add_word(desc, HMAC_INIT_DECRYPT(alg->type));
+	desc_add_word(desc, FIFO_LD_IMM(CLASS_2, MSG, LAST_C2, 0));
 	/* Store the split key */
-	desc[desclen++] = FIFO_ST(C2_MDHA_SPLIT_KEY_AES_ECB_JKEK,
-					hashdata->key.length);
-	desc[desclen++] = hashdata->key.paddr;
-
-	/* Set the descriptor Header with length */
-	desc[0] = DESC_HEADER(desclen);
-
+	desc_add_word(desc, FIFO_ST(C2_MDHA_SPLIT_KEY_AES_ECB_JKEK,
+					hashdata->key.length));
+	desc_add_ptr(desc, hashdata->key.paddr);
 	HASH_DUMPDESC(desc);
 
 	cache_operation(TEE_CACHECLEAN, key.data, key.length);
@@ -332,6 +334,7 @@ static TEE_Result do_split_key(void *ctx, const uint8_t *ikey, size_t ilen)
 		ret = TEE_SUCCESS;
 	} else {
 		HASH_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_split_key:
@@ -438,7 +441,7 @@ static void do_free(void *ctx)
  * @retval TEE_SUCCESS                 Success
  * @retval TEE_ERROR_OUT_OF_MEMORY     Out of memory
  */
-static TEE_Result do_allocate(void **ctx, enum imxcrypt_hash_id algo)
+static TEE_Result do_allocate(void **ctx, enum nxpcrypt_hash_id algo)
 {
 	struct hashdata *hashdata;
 
@@ -464,37 +467,29 @@ static TEE_Result do_allocate(void **ctx, enum imxcrypt_hash_id algo)
  * @brief   Initialization of the Hash operation
  *
  * @param[in] ctx   Operation Software context
- * @param[in] algo  Algorithm ID of the context
  *
  * @retval TEE_SUCCESS               Success
- * @retval TEE_ERROR_BAD_PARAMETERS  Bad parameters
  */
-static TEE_Result do_init(void *ctx, enum imxcrypt_hash_id algo)
+static TEE_Result do_init(void *ctx)
 {
 	struct hashdata *hashdata = ctx;
 
-	/* Check if the algorithm is equal to the context one's */
-	if (hashdata->algo_id == algo) {
-		/* Initialize the block buffer */
-		hashdata->blockbuf.filled = 0;
+	/* Initialize the block buffer */
+	hashdata->blockbuf.filled = 0;
 
-		/* Ensure Context length is 0 */
-		hashdata->ctx.length = 0;
+	/* Ensure Context length is 0 */
+	hashdata->ctx.length = 0;
 
-		hashdata->key.length = 0;
-		hashdata->key_type   = KEY_EMPTY;
+	hashdata->key.length = 0;
+	hashdata->key_type   = KEY_EMPTY;
 
-		return TEE_SUCCESS;
-	}
-
-	return TEE_ERROR_BAD_PARAMETERS;
+	return TEE_SUCCESS;
 }
 
 /**
  * @brief   Update the Hash operation
  *
  * @param[in] ctx   Operation Software context
- * @param[in] algo  Algorithm ID of the context
  * @param[in] data  Data to hash
  * @param[in] len   Data length
  *
@@ -503,8 +498,7 @@ static TEE_Result do_init(void *ctx, enum imxcrypt_hash_id algo)
  * @retval TEE_ERROR_BAD_PARAMETERS  Bad parameters
  * @retval TEE_ERROR_OUT_OF_MEMORY   Out of memory
  */
-static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
-					const uint8_t *data, size_t len)
+static TEE_Result do_update(void *ctx, const uint8_t *data, size_t len)
 {
 	TEE_Result    ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus;
@@ -514,7 +508,6 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 
 	struct jr_jobctx jobctx = {0};
 	descPointer_t    desc;
-	uint8_t          desclen = 1;
 
 	size_t fullSize;
 	size_t size_topost;
@@ -523,13 +516,6 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 
 	size_t  inLength   = 0;
 	paddr_t paddr_data = 0;
-
-	if (hashdata->algo_id != algo) {
-		HASH_TRACE("Context algo is %d and asked for %d",
-					hashdata->algo_id, algo);
-		ret = TEE_ERROR_BAD_PARAMETERS;
-		goto exit_update;
-	}
 
 	if (data) {
 		paddr_data = virt_to_phys((void *)data);
@@ -549,8 +535,8 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 		}
 	}
 
-	HASH_TRACE("Update Algo %d - Input @0x%08"PRIxPTR"-%d",
-				algo, (uintptr_t)data, inLength);
+	HASH_TRACE("Update Type 0x%X - Input @0x%08"PRIxPTR"-%d",
+				alg->type, (uintptr_t)data, inLength);
 
 	/* Calculate the total data to be handled */
 	fullSize = hashdata->blockbuf.filled + inLength;
@@ -562,28 +548,32 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 
 	if (size_todo) {
 		desc = hashdata->descriptor;
+		desc_init(desc);
+		desc_add_word(desc, DESC_HEADER(0));
 
 		/* There are blocks to hash - Create the Descriptor */
 		if (hashdata->ctx.length) {
 			HASH_TRACE("Update Operation");
 			/* Algo Operation - Update */
-			desc[desclen++] = HASH_UPDATE(alg->type);
+			desc_add_word(desc, HASH_UPDATE(alg->type));
 			/* Running context to restore */
-			desc[desclen++] = LD_NOIMM(CLASS_2, REG_CTX,
-					hashdata->ctx.length);
-			desc[desclen++] = hashdata->ctx.paddr;
+			desc_add_word(desc, LD_NOIMM(CLASS_2, REG_CTX,
+					hashdata->ctx.length));
+			desc_add_ptr(desc, hashdata->ctx.paddr);
 		} else {
 			HASH_TRACE("Init Operation");
 
 			/* Check if there is a key to load it */
 			if (hashdata->key_type == KEY_PRECOMP) {
 				HASH_TRACE("Insert Key");
-				desc[desclen++] = LD_KEY_SPLIT(
-					hashdata->key.length);
-				desc[desclen++] = hashdata->key.paddr;
+				desc_add_word(desc, LD_KEY_SPLIT(
+					hashdata->key.length));
+				desc_add_ptr(desc,
+					hashdata->key.paddr);
 
 				/* Algo Operation - HMAC Init */
-				desc[desclen++] = HMAC_INIT_PRECOMP(alg->type);
+				desc_add_word(desc,
+					HMAC_INIT_PRECOMP(alg->type));
 
 				/* Clean the Split key */
 				cache_operation(TEE_CACHECLEAN,
@@ -592,7 +582,8 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 
 			} else {
 				/* Algo Operation - Init */
-				desc[desclen++] = HASH_INIT(alg->type);
+				desc_add_word(desc,
+					HASH_INIT(alg->type));
 			}
 
 			hashdata->ctx.length = alg->size_ctx;
@@ -600,9 +591,10 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 
 		if (hashdata->blockbuf.filled != 0) {
 			/* Add the temporary buffer */
-			desc[desclen++] = FIFO_LD_EXT(CLASS_2, MSG, NOACTION);
-			desc[desclen++] = hashdata->blockbuf.buf.paddr;
-			desc[desclen++] = hashdata->blockbuf.filled;
+			desc_add_word(desc,
+				FIFO_LD_EXT(CLASS_2, MSG, NOACTION));
+			desc_add_ptr(desc, hashdata->blockbuf.buf.paddr);
+			desc_add_word(desc, hashdata->blockbuf.filled);
 
 			/* Clean the circular buffer data to be loaded */
 			cache_operation(TEE_CACHECLEAN,
@@ -612,20 +604,17 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 		}
 
 		/* Add the input data multiple of blocksize */
-		desc[desclen++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-		desc[desclen++] = paddr_data;
-		desc[desclen++] = size_inmade;
+		desc_add_word(desc, FIFO_LD_EXT(CLASS_2, MSG, LAST_C2));
+		desc_add_ptr(desc, paddr_data);
+		desc_add_word(desc, size_inmade);
 
 		/* Clean the input data to be loaded */
 		cache_operation(TEE_CACHECLEAN, (void *)data, size_inmade);
 
 		/* Save the running context */
-		desc[desclen++] = ST_NOIMM(CLASS_2, REG_CTX,
-					hashdata->ctx.length);
-		desc[desclen++] = hashdata->ctx.paddr;
-
-		/* Set the descriptor Header with length */
-		desc[0] = DESC_HEADER(desclen);
+		desc_add_word(desc, ST_NOIMM(CLASS_2, REG_CTX,
+					hashdata->ctx.length));
+		desc_add_ptr(desc, hashdata->ctx.paddr);
 
 		HASH_DUMPDESC(desc);
 
@@ -642,7 +631,7 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 				hashdata->ctx.length);
 		} else {
 			HASH_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-			ret = TEE_ERROR_GENERIC;
+			ret = job_status_to_tee_result(jobctx.status);
 		}
 	} else {
 		ret = TEE_SUCCESS;
@@ -654,7 +643,7 @@ static TEE_Result do_update(void *ctx, enum imxcrypt_hash_id algo,
 	}
 
 	if ((size_topost) && (data)) {
-		struct imxcrypt_buf indata = {
+		struct nxpcrypt_buf indata = {
 			.data = (uint8_t *)data,
 			.length = inLength};
 
@@ -676,7 +665,6 @@ exit_update:
  * @brief   Finalize the Hash operation
  *
  * @param[in] ctx   Operation Software context
- * @param[in] algo  Algorithm ID of the context
  * @param[in] len   Digest buffer length
  *
  * @param[out] digest  Hash digest buffer
@@ -686,8 +674,7 @@ exit_update:
  * @retval TEE_ERROR_BAD_PARAMETERS  Bad parameters
  * @retval TEE_ERROR_OUT_OF_MEMORY   Out of memory
  */
-static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
-					uint8_t *digest, size_t len)
+static TEE_Result do_final(void *ctx, uint8_t *digest, size_t len)
 {
 	TEE_Result    ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus;
@@ -697,17 +684,9 @@ static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
 
 	struct jr_jobctx jobctx = {0};
 	descPointer_t    desc;
-	uint8_t          desclen = 1;
 
 	int realloc = 0;
 	struct caambuf digest_align = {0};
-
-	if (hashdata->algo_id != algo) {
-		HASH_TRACE("Context algo is %d and asked for %d",
-					hashdata->algo_id, algo);
-		ret = TEE_ERROR_BAD_PARAMETERS;
-		goto exit_final;
-	}
 
 	if (!hashdata->ctx.data) {
 		retstatus = do_allocate_intern(hashdata);
@@ -739,16 +718,21 @@ static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
 		}
 	}
 
-	HASH_TRACE("Final Algo %d - Digest @0x%08"PRIxPTR"-%d",
-				algo, (uintptr_t)digest_align.data, len);
+	HASH_TRACE("Final Type 0x%X - Digest @0x%08"PRIxPTR"-%d",
+				alg->type, (uintptr_t)digest_align.data, len);
 
 	desc = hashdata->descriptor;
+	desc_init(desc);
+
+	/* Set the descriptor Header with length */
+	desc_add_word(desc, DESC_HEADER(0));
 
 	/* Check if there is a key to load it */
 	if (hashdata->key_type == KEY_PRECOMP) {
 		HASH_TRACE("Load key");
-		desc[desclen++] = LD_KEY_SPLIT(hashdata->key.length);
-		desc[desclen++] = hashdata->key.paddr;
+
+		desc_add_word(desc, LD_KEY_SPLIT(hashdata->key.length));
+		desc_add_ptr(desc, hashdata->key.paddr);
 
 		/* Clean Split key */
 		cache_operation(TEE_CACHECLEAN, hashdata->key.data,
@@ -758,15 +742,15 @@ static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
 	if (hashdata->ctx.length) {
 		HASH_TRACE("Final Operation");
 
-		if (hashdata->key_type == KEY_PRECOMP)
-			desc[desclen++] = HMAC_FINAL_PRECOMP(alg->type);
-		else
-			desc[desclen++] = HASH_FINAL(alg->type);
-
+		if (hashdata->key_type == KEY_PRECOMP) {
+			desc_add_word(desc, HMAC_FINAL_PRECOMP(alg->type));
+		} else {
+			desc_add_word(desc, HASH_FINAL(alg->type));
+		}
 		/* Running context to restore */
-		desc[desclen++] = LD_NOIMM(CLASS_2, REG_CTX,
-					hashdata->ctx.length);
-		desc[desclen++] = hashdata->ctx.paddr;
+		desc_add_word(desc, LD_NOIMM(CLASS_2, REG_CTX,
+					hashdata->ctx.length));
+		desc_add_ptr(desc, hashdata->ctx.paddr);
 
 		cache_operation(TEE_CACHEINVALIDATE, hashdata->ctx.data,
 						hashdata->ctx.length);
@@ -774,27 +758,25 @@ static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
 		hashdata->ctx.length = 0;
 	} else {
 		HASH_TRACE("Init/Final Operation");
-		if (hashdata->key_type == KEY_PRECOMP)
-			desc[desclen++] = HMAC_INITFINAL_PRECOMP(alg->type);
-		else
-			desc[desclen++] = HASH_INITFINAL(alg->type);
+		if (hashdata->key_type == KEY_PRECOMP) {
+			desc_add_word(desc, HMAC_INITFINAL_PRECOMP(alg->type));
+		} else {
+			desc_add_word(desc, HASH_INITFINAL(alg->type));
+		}
 	}
 
 	HASH_DUMPBUF("Temporary Block", hashdata->blockbuf.buf.data,
 					hashdata->blockbuf.filled);
-	desc[desclen++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-	desc[desclen++] = hashdata->blockbuf.buf.paddr;
-	desc[desclen++] = hashdata->blockbuf.filled;
+	desc_add_word(desc, FIFO_LD_EXT(CLASS_2, MSG, LAST_C2));
+	desc_add_ptr(desc, hashdata->blockbuf.buf.paddr);
+	desc_add_word(desc, hashdata->blockbuf.filled);
 	cache_operation(TEE_CACHECLEAN, hashdata->blockbuf.buf.data,
 					hashdata->blockbuf.filled);
 	hashdata->blockbuf.filled = 0;
 
 	/* Save the final digest */
-	desc[desclen++] = ST_NOIMM(CLASS_2, REG_CTX, alg->size_digest);
-	desc[desclen++] = digest_align.paddr;
-
-	/* Set the descriptor Header with length */
-	desc[0] = DESC_HEADER(desclen);
+	desc_add_word(desc, ST_NOIMM(CLASS_2, REG_CTX, alg->size_digest));
+	desc_add_ptr(desc, digest_align.paddr);
 
 	HASH_DUMPDESC(desc);
 
@@ -816,10 +798,10 @@ static TEE_Result do_final(void *ctx, enum imxcrypt_hash_id algo,
 		if (realloc)
 			memcpy(digest, digest_align.data, len);
 
-		HASH_DUMPBUF("Digest", digest.data, alg->size_digest);
+		HASH_DUMPBUF("Digest", digest, alg->size_digest);
 	} else {
 		HASH_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_final:
@@ -861,7 +843,7 @@ static void do_cpy_state(void *dst_ctx, void *src_ctx)
 	cache_operation(TEE_CACHECLEAN, dst->ctx.data, dst->ctx.length);
 
 	if (src->blockbuf.filled) {
-		struct imxcrypt_buf srcdata = {
+		struct nxpcrypt_buf srcdata = {
 				.data   = src->blockbuf.buf.data,
 				.length = src->blockbuf.filled};
 
@@ -879,7 +861,7 @@ static void do_cpy_state(void *dst_ctx, void *src_ctx)
 /**
  * @brief   Registration of the HASH Driver
  */
-struct imxcrypt_hash driver_hash = {
+struct nxpcrypt_hash driver_hash = {
 	.alloc_ctx  = &do_allocate,
 	.free_ctx   = &do_free,
 	.init       = &do_init,
@@ -892,7 +874,7 @@ struct imxcrypt_hash driver_hash = {
 /**
  * @brief   Registration of the HMAC Driver
  */
-struct imxcrypt_hash driver_hmac = {
+struct nxpcrypt_hash driver_hmac = {
 	.alloc_ctx   = &do_allocate,
 	.free_ctx    = &do_free,
 	.init        = &do_init,
@@ -923,12 +905,12 @@ enum CAAM_Status caam_hash_init(vaddr_t ctrl_addr)
 		driver_hash.max_hash = hash_limit;
 		driver_hmac.max_hash = hash_limit;
 
-		if (imxcrypt_register(CRYPTO_HASH, &driver_hash) == 0) {
+		if (nxpcrypt_register(CRYPTO_HASH, &driver_hash) == 0) {
 			retstatus = CAAM_NO_ERROR;
 
 			/* Check if the HW support the HMAC Split key */
 			if (hal_ctrl_splitkey(ctrl_addr)) {
-				if (imxcrypt_register(CRYPTO_HMAC, &driver_hmac) != 0)
+				if (nxpcrypt_register(CRYPTO_HMAC, &driver_hmac) != 0)
 					retstatus = CAAM_FAILURE;
 			}
 		}

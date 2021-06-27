@@ -2,6 +2,7 @@
 
   Copyright (c) 2013-2018, ARM Ltd. All rights reserved.
   Copyright (c) Microsoft Corporation. All rights reserved.
+  Copyright 2019 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -141,7 +142,7 @@ LcdPlatformQueryMode (
 
   Info->Version = 0;
 
-#if defined(CPU_IMX8MM)
+#if defined(CPU_IMX8MM) || defined(CPU_IMX8MN)
   Info->HorizontalResolution = HD_H_RES_PIXELS;
   Info->VerticalResolution = HD_V_RES_PIXELS;
   Info->PixelsPerScanLine = HD_H_RES_PIXELS;

@@ -24,8 +24,10 @@
 
 #endif // CFG_DT
 
+#ifndef	CFG_LS
 /* Platform includes */
 #include <imx.h>
+#endif
 
 /* Local includes */
 #include "common.h"
@@ -51,13 +53,8 @@
 /**
  * @brief   Define the TEE Job Ring to be used
  */
-#define CFG_JR_INDEX		0
-#define CFG_JR_IRQ			105
-
-#ifdef CFG_WITH_HAB
-#define CFG_JR_INDEX_HAB	1
-#define CFG_JR_IRQ_HAB		106
-#endif
+#define CFG_JR_INDEX		CFG_JR_IDX
+#define CFG_JR_IRQ		CFG_JR_IRQ_ID
 #endif
 
 #ifdef CFG_DT
@@ -193,7 +190,7 @@ enum CAAM_Status hal_cfg_get_conf(struct jr_cfg *jr_cfg)
 		goto exit_get_conf;
 	}
 
-#ifdef CFG_IMXCRYPT
+#ifdef CFG_NXPCRYPT
 	/* We took one job ring, make it unavailable for Normal World */
 	if (dt_disable_status(fdt, node)) {
 		EMSG("Not able to disable JR DTB entry\n");
@@ -229,14 +226,7 @@ enum CAAM_Status hal_cfg_get_conf(struct jr_cfg *jr_cfg)
 	jr_cfg->offset  = (CFG_JR_INDEX + 1) * JRx_BLOCK_SIZE;
 	jr_cfg->nb_jobs = NB_JOBS_QUEUE;
 	// Add index of the first SPI interrupt
-	jr_cfg->it_num  = CFG_JR_IRQ + 32;
-
-#ifdef CFG_WITH_HAB
-	if (imx_is_device_closed()) {
-		jr_cfg->offset = (CFG_JR_INDEX_HAB + 1) * JRx_BLOCK_SIZE;
-		jr_cfg->it_num = CFG_JR_IRQ_HAB + 32;
-	}
-#endif
+	jr_cfg->it_num  = CFG_JR_IRQ;
 #endif // CFG_DT
 
 	retstatus = CAAM_NO_ERROR;
@@ -296,7 +286,7 @@ void hal_cfg_setup_nsjobring(vaddr_t ctrl_base)
 
 	/* Configure the other Job ring to be Non-Secure */
 	do {
-#ifdef CFG_IMXCRYPT
+#ifdef CFG_NXPCRYPT
 		if (jrnum != (CFG_JR_INDEX + 1)) {
 			jr_offset = jrnum * JRx_BLOCK_SIZE;
 			status = hal_jr_setowner(ctrl_base, jr_offset,

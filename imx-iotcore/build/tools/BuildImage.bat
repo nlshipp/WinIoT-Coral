@@ -98,6 +98,10 @@ REM Append the %BOARD_NAME% folder to the end of the scrape list so the correct 
 if not exist %REPO_BUILD_ROOT%\..\..\b\%Configuration%\%PLATFORM% (dir /S /B %REPO_BUILD_ROOT%\solution\iMXPlatform\Build\%PLATFORM%\%Configuration%\%BOARD_NAME%\*.cab >> filelist.txt)
 if exist %REPO_BUILD_ROOT%\..\..\b\%Configuration%\%PLATFORM% (dir /S /B %REPO_BUILD_ROOT%\..\..\b\%Configuration%\%PLATFORM%\%BOARD_NAME%\*.cab >> filelist.txt)
 
+:: Copy Default app to cabs
+echo Copying Default App to %BSPPKG_DIR%
+copy %REPO_SOURCE_ROOT%\components\Arm64DefaultApp\CabFile\* %BSPPKG_DIR%\ >NUL
+
 for /f "delims=" %%i in (filelist.txt) do (
     echo %%i
     copy "%%i" "%BSPPKG_DIR%" >nul 2>nul

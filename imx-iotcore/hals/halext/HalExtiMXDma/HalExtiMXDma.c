@@ -1312,6 +1312,7 @@ Return Value:
         break;
 
     case IMX_CPU_MX8MQ:
+    case IMX_CPU_MX8MN:
     case IMX_CPU_MX8MM: /* MM has 3 SDMA but we support 2 */
         if (Instance > 1) {
             return STATUS_NOT_SUPPORTED;
@@ -1392,6 +1393,7 @@ Return Value:
         break;
 
     case IMX_CPU_MX8MM:
+    case IMX_CPU_MX8MN:
         SdmaControllerPtr->SdmaReqToChannelConfigPtr = Imx8mmDmaReqToChannelConfig;
         SdmaControllerPtr->SdmaReqMaxId = Imx8mmDmaReqMax;
         SdmaControllerPtr->SdmaCodeBlock = imx7_sdma_code;

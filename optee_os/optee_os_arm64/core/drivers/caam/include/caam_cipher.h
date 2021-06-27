@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /**
- * @copyright 2018 NXP
+ * @copyright 2018-2019 NXP
  *
  * @file    caam_cipher.h
  *
@@ -9,8 +9,8 @@
 #ifndef __CAAM_CIPHER_H__
 #define __CAAM_CIPHER_H__
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
 
 /**
  * @brief   Initialize the Cipher module

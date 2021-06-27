@@ -801,6 +801,15 @@ IMXUartEvtSerCx2Control (
         IMXUartIoctlGetModemControl(deviceContextPtr, WdfRequest);
         return STATUS_SUCCESS;
 
+    case IOCTL_SERIAL_SET_DTR: __fallthrough;
+    case IOCTL_SERIAL_CLR_DTR:
+        IMXUartIoctlSetClrDtr(
+            deviceContextPtr,
+            WdfRequest,
+            IoControlCode == IOCTL_SERIAL_SET_DTR);
+
+        return STATUS_SUCCESS;
+
     case IOCTL_SERIAL_RESET_DEVICE: __fallthrough;
     case IOCTL_SERIAL_SET_QUEUE_SIZE: __fallthrough;
     case IOCTL_SERIAL_SET_XOFF: __fallthrough;
@@ -822,8 +831,6 @@ IMXUartEvtSerCx2Control (
         NT_ASSERT(!"Should have been handled by SerCx2!");
         __fallthrough;
 
-    case IOCTL_SERIAL_SET_DTR: __fallthrough;
-    case IOCTL_SERIAL_CLR_DTR: __fallthrough;
     case IOCTL_SERIAL_GET_COMMCONFIG: __fallthrough;
     case IOCTL_SERIAL_SET_COMMCONFIG: __fallthrough;
     case IOCTL_SERIAL_SET_MODEM_CONTROL: __fallthrough;
@@ -3578,15 +3585,6 @@ IMXUartSetHandflow (
         return STATUS_NOT_SUPPORTED;
     }
 
-    if ((LineControlPtr->ControlHandShake & ~SERIAL_OUT_HANDSHAKEMASK) != 0) {
-        IMX_UART_LOG_ERROR(
-            "Unsupported ControlHandShake flag. "
-            "(LineControlPtr->ControlHandShake = 0x%lx)",
-            LineControlPtr->ControlHandShake);
-
-        return STATUS_NOT_SUPPORTED;
-    }
-
     //
     // Handle RTS flow control. The receiver on this UART can optionally
     // set the RTS pin - an output on this UART - depending on FIFO level.
@@ -4031,9 +4029,17 @@ IMXUartIoctlGetHandflow (
 
     WdfInterruptAcquireLock(DeviceContextPtr->WdfInterrupt);
     const ULONG ucr2 = DeviceContextPtr->InterruptContextPtr->Ucr2Copy;
+    const ULONG ucr3 = DeviceContextPtr->InterruptContextPtr->Ucr3Copy;
     WdfInterruptReleaseLock(DeviceContextPtr->WdfInterrupt);
 
     *outputBufferPtr = SERIAL_HANDFLOW();
+
+    //
+    // Check if DTR is enabled
+    //
+    if ((ucr3 & IMX_UART_UCR3_DSR) != 0) {
+        outputBufferPtr->ControlHandShake |= SERIAL_DTR_CONTROL;
+    }
 
     //
     // If the Ignore RTS bit (which is really the Ignore CTS bit) is
@@ -4165,6 +4171,10 @@ IMXUartIoctlGetCommStatus (
     IMX_UART_INTERRUPT_CONTEXT* interruptContextPtr =
             DeviceContextPtr->InterruptContextPtr;
 
+    IMX_UART_REGISTERS* registersPtr = interruptContextPtr->RegistersPtr;
+
+    const ULONG usr2 = READ_REGISTER_NOFENCE_ULONG(&registersPtr->Usr2);
+
     *outputBufferPtr = SERIAL_STATUS();
 
     //
@@ -4182,9 +4192,7 @@ IMXUartIoctlGetCommStatus (
     // (which really indicates states of CTS pin)
     //
     if ((interruptContextPtr->Ucr2Copy & IMX_UART_UCR2_IRTS) == 0) {
-        const ULONG usr1 = READ_REGISTER_NOFENCE_ULONG(
-                &interruptContextPtr->RegistersPtr->Usr1);
-
+        const ULONG usr1 = READ_REGISTER_NOFENCE_ULONG(&registersPtr->Usr1);
         if ((usr1 & IMX_UART_USR1_RTSS) != 0) {
             outputBufferPtr->HoldReasons |= SERIAL_TX_WAITING_FOR_CTS;
         }
@@ -4197,7 +4205,59 @@ IMXUartIoctlGetCommStatus (
         outputBufferPtr->HoldReasons |= SERIAL_TX_WAITING_ON_BREAK;
     }
 
-    outputBufferPtr->AmountInInQueue = 0;
+    //
+    // Service the RX buffer if the RX FIFO needs to be read
+    //
+    if (!IMXUartIsRxDmaActive(interruptContextPtr) &&
+        ((usr2 & IMX_UART_USR2_RDR) != 0)) {
+
+        IMX_UART_RING_BUFFER* rxBufferPtr = &interruptContextPtr->RxBuffer;
+        const ULONG tail = ReadULongAcquire(&rxBufferPtr->TailIndex);
+        const ULONG oldHead = rxBufferPtr->HeadIndex;
+        const ULONG size = rxBufferPtr->Size;
+
+        ULONG head = oldHead;
+        ULONG nextHead = (head + 1) % size;
+        ULONG bytesRead = 0;
+        while (nextHead != tail) {
+            const ULONG rxd = READ_REGISTER_NOFENCE_ULONG(&registersPtr->Rxd);
+            if ((rxd & IMX_UART_RXD_CHARRDY) == 0) {
+                break;
+            }
+
+            if ((rxd & IMX_UART_RXD_ERR) != 0) {
+                IMX_UART_LOG_ERROR("RX FIFO reported error. (rxd = 0x%lx)", rxd);
+
+                if ((rxd & IMX_UART_RXD_OVRRUN) != 0) {
+                    outputBufferPtr->Errors |= SERIAL_ERROR_OVERRUN;
+                }
+
+                if ((rxd & IMX_UART_RXD_FRMERR) != 0) {
+                    outputBufferPtr->Errors |= SERIAL_ERROR_FRAMING;
+                }
+
+                if ((rxd & IMX_UART_RXD_BRK) != 0) {
+                    outputBufferPtr->Errors |= SERIAL_ERROR_BREAK;
+                }
+
+                if ((rxd & IMX_UART_RXD_PRERR) != 0) {
+                    outputBufferPtr->Errors |= SERIAL_ERROR_PARITY;
+                }
+            }
+
+            rxBufferPtr->BufferPtr[head] = static_cast<UCHAR>(rxd);
+
+            ++bytesRead;
+            head = nextHead;
+            nextHead = (nextHead + 1) % size;
+        }
+
+        WriteULongRelease(&rxBufferPtr->HeadIndex, head);
+
+        IMX_UART_LOG_TRACE("Read %lu bytes from FIFO.", bytesRead);
+    }
+
+    outputBufferPtr->AmountInInQueue = interruptContextPtr->RxBuffer.Count();
     outputBufferPtr->AmountInOutQueue = interruptContextPtr->TxBuffer.Count();
     outputBufferPtr->EofReceived = FALSE;
     outputBufferPtr->WaitForImmediate = FALSE;
@@ -4387,6 +4447,10 @@ IMXUartIoctlGetDtrRts (
 
     ULONG mask = 0;
 
+    if ((interruptContextPtr->Ucr3Copy & IMX_UART_UCR3_DSR) != 0) {
+        mask |= SERIAL_DTR_STATE;
+    }
+
     if ((interruptContextPtr->Ucr2Copy & IMX_UART_UCR2_CTS) != 0) {
         mask |= SERIAL_RTS_STATE;
     }
@@ -4480,6 +4544,10 @@ IMXUartIoctlGetModemControl (
 
     ULONG mcr = 0;
 
+    if ((interruptContextPtr->Ucr3Copy & IMX_UART_UCR3_DSR) != 0) {
+        mcr |= SERIAL_MCR_DTR;
+    }
+
     if ((interruptContextPtr->Ucr2Copy & IMX_UART_UCR2_CTS) != 0) {
         mcr |= SERIAL_MCR_RTS;
     }
@@ -4489,6 +4557,35 @@ IMXUartIoctlGetModemControl (
         WdfRequest,
         STATUS_SUCCESS,
         sizeof(*outputBufferPtr));
+}
+
+_Use_decl_annotations_
+void
+IMXUartIoctlSetClrDtr(
+    IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
+    WDFREQUEST WdfRequest,
+    bool SetDtr
+    )
+{
+    IMX_UART_INTERRUPT_CONTEXT* interruptContextPtr =
+        DeviceContextPtr->InterruptContextPtr;
+
+    WdfInterruptAcquireLock(interruptContextPtr->WdfInterrupt);
+
+    if (SetDtr) {
+        interruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
+    } else {
+        interruptContextPtr->Ucr3Copy &= ~IMX_UART_UCR3_DSR;
+    }
+
+    WRITE_REGISTER_NOFENCE_ULONG(
+        &interruptContextPtr->RegistersPtr->Ucr3,
+        interruptContextPtr->Ucr3Copy);
+
+    WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
+    WdfRequestComplete(WdfRequest, STATUS_SUCCESS);
+
+    IMX_UART_LOG_TRACE("Set DTR state. (SetDtr = %d)", SetDtr);
 }
 
 _Use_decl_annotations_

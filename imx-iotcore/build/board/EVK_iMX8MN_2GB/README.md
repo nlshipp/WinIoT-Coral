@@ -1,0 +1,3 @@
+EVK_iMX8MN_2GB
+board
+package

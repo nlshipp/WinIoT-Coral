@@ -14,21 +14,23 @@
 #include <tee/tee_cryp_utl.h>
 #include <utee_defines.h>
 
-/* Library i.MX includes */
-#include <libimxcrypt.h>
-#include <libimxcrypt_acipher.h>
-#include <libimxcrypt_math.h>
+/* Library NXP includes */
+#include <libnxpcrypt.h>
+#include <libnxpcrypt_acipher.h>
+#include <libnxpcrypt_math.h>
 
 /* Local includes */
 #include "local.h"
 #include "caam_acipher.h"
 #include "caam_jr.h"
+#include "caam_io.h"
 
 /* Hal includes */
 #include "hal_ctrl.h"
 
 /* Utils includes */
 #include "utils_mem.h"
+#include "utils_status.h"
 
 /*
  * Debug Macros
@@ -59,16 +61,28 @@
  * @brief   Define the maximum number of entries in a descriptor
  *          function of the encrypt/decrypt and private key format
  */
+#ifdef	CFG_PHYS_64BIT
+#define MAX_DESC_ENC     (8 + 4)
+#define MAX_DESC_DEC_1   (7 + 2 + 4)
+#define MAX_DESC_DEC_2   (11 + 2 + 7)
+#define MAX_DESC_DEC_3   (13 + 2 + 10)
+/**
+ * @brief   Define the maximum number of entries in the RSA Finish Key
+ *          descriptor
+ */
+#define MAX_DESC_KEY_FINISH		24
+#else
 #define MAX_DESC_ENC     8
 #define MAX_DESC_DEC_1   (7 + 2)
 #define MAX_DESC_DEC_2   (11 + 2)
 #define MAX_DESC_DEC_3   (13 + 2)
-
 /**
  * @brief   Define the maximum number of entries in the RSA Finish Key
  *          descriptor
  */
 #define MAX_DESC_KEY_FINISH		15
+#endif
+
 /**
  * @brief   Define the RSA Private Key Format used by the CAAM
  *           Format #1: (n, d)
@@ -77,10 +91,10 @@
  */
 #define RSA_PRIVATE_KEY_FORMAT  3
 
-static TEE_Result do_caam_encrypt(struct imxcrypt_rsa_ed *rsa_data,
-				descEntry_t operation);
-static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
-				descEntry_t operation);
+static TEE_Result do_caam_encrypt(struct nxpcrypt_rsa_ed *rsa_data,
+				uint32_t operation);
+static TEE_Result do_caam_decrypt(struct nxpcrypt_rsa_ed *rsa_data,
+				uint32_t operation);
 
 /**
  * @brief   Definition of the local RSA keypair
@@ -488,7 +502,7 @@ static TEE_Result do_gen_keypair(struct rsa_keypair *key, size_t key_size)
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t desc = 0;
-	uint8_t desclen    = 1;
+	uint8_t desclen    = 0;
 
 	struct caam_prime_data prime;
 
@@ -568,25 +582,30 @@ static TEE_Result do_gen_keypair(struct rsa_keypair *key, size_t key_size)
 	if (retstatus != CAAM_NO_ERROR)
 		goto exit_gen_keypair;
 
-	desc[desclen++] = 0x00000000;
-	desc[desclen++] = PDB_RSA_KEY_P_SIZE(p.length);
-	desc[desclen++] = PDB_RSA_KEY_N_SIZE(size_n) |
-					PDB_RSA_KEY_E_SIZE(e.length);
-	desc[desclen++] = p.paddr;
-	desc[desclen++] = q.paddr;
-	desc[desclen++] = e.paddr;
-	desc[desclen++] = d_n.paddr + size_d;
-	desc[desclen++] = d_n.paddr + sizeof(uint32_t);
-	desc[desclen++] = d_n.paddr; /* Retrieve d length generated */
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
+	desc_add_word(desc, 0x00000000);
+	desc_add_word(desc, PDB_RSA_KEY_P_SIZE(p.length));
+	desc_add_word(desc, PDB_RSA_KEY_N_SIZE(size_n) |
+				PDB_RSA_KEY_E_SIZE(e.length));
+
+	desc_add_ptr(desc, p.paddr);
+	desc_add_ptr(desc, q.paddr);
+	desc_add_ptr(desc, e.paddr);
+	desc_add_ptr(desc, (d_n.paddr + size_d));
+	desc_add_ptr(desc, (d_n.paddr + sizeof(uint32_t)));
+	desc_add_ptr(desc, d_n.paddr);
 #if (RSA_PRIVATE_KEY_FORMAT > 2)
-	desc[desclen++] = dp.paddr;
-	desc[desclen++] = dq.paddr;
-	desc[desclen++] = qp.paddr;
-	desc[desclen++] = RSA_FINAL_KEY(ALL);
+	desc_add_ptr(desc, dp.paddr);
+	desc_add_ptr(desc, dq.paddr);
+	desc_add_ptr(desc, qp.paddr);
+	desc_add_word(desc, RSA_FINAL_KEY(ALL));
 #else
-	desc[desclen++] = RSA_FINAL_KEY(N_D);
+	desc_add_word(desc, RSA_FINAL_KEY(N_D));
 #endif
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 
 	jobctx.desc = desc;
 	RSA_DUMPDESC(desc);
@@ -655,7 +674,7 @@ static TEE_Result do_gen_keypair(struct rsa_keypair *key, size_t key_size)
 		ret = TEE_SUCCESS;
 	} else {
 		RSA_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_gen_keypair:
@@ -684,24 +703,24 @@ exit_gen_keypair:
  * @retval TEE_ERROR_NOT_IMPLEMENTED   Algorithm not implemented
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_hash(enum imxcrypt_hash_id hash_id,
-			const struct imxcrypt_buf *data,
+static TEE_Result do_hash(enum nxpcrypt_hash_id hash_id,
+			const struct nxpcrypt_buf *data,
 			struct caambuf *digest)
 {
 	TEE_Result ret;
 
-	struct imxcrypt_hash *hash = NULL;
+	struct nxpcrypt_hash *hash = NULL;
 
 	void *ctx = NULL;
 
-	hash = imxcrypt_getmod(CRYPTO_HASH);
+	hash = nxpcrypt_getmod(CRYPTO_HASH);
 
 	/* Verify that the HASH HW implements this algorithm */
 	if (hash) {
 		if (hash->max_hash < hash_id)
-			hash = imxcrypt_getmod(CRYPTO_HASH_SW);
+			hash = nxpcrypt_getmod(CRYPTO_HASH_SW);
 	} else {
-		hash = imxcrypt_getmod(CRYPTO_HASH_SW);
+		hash = nxpcrypt_getmod(CRYPTO_HASH_SW);
 	}
 
 	if (!hash)
@@ -712,17 +731,17 @@ static TEE_Result do_hash(enum imxcrypt_hash_id hash_id,
 	if (ret != TEE_SUCCESS)
 		goto exit_hash;
 
-	ret = hash->init(ctx, hash_id);
+	ret = hash->init(ctx);
 	if (ret != TEE_SUCCESS)
 		goto exit_hash;
 
 	if (data->length > 0) {
-		ret = hash->update(ctx, hash_id, data->data, data->length);
+		ret = hash->update(ctx, data->data, data->length);
 		if (ret != TEE_SUCCESS)
 			goto exit_hash;
 	}
 
-	ret = hash->final(ctx, hash_id, digest->data, digest->length);
+	ret = hash->final(ctx, digest->data, digest->length);
 
 exit_hash:
 	hash->free_ctx(ctx);
@@ -741,7 +760,7 @@ exit_hash:
  * @retval TEE_ERROR_NOT_IMPLEMENTED   Algorithm not implemented
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
+static TEE_Result do_oaep_decoding(struct nxpcrypt_rsa_ed *rsa_data)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -756,9 +775,9 @@ static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
 	size_t db_size;
 	size_t b01_idx;
 
-	struct imxcrypt_rsa_mgf mgf_data;
-	struct imxcrypt_rsa_ed  dec_data = {0};
-	struct imxcrypt_mod_op  mod_op;
+	struct nxpcrypt_rsa_mgf mgf_data;
+	struct nxpcrypt_rsa_ed  dec_data = {0};
+	struct nxpcrypt_mod_op  mod_op;
 
 	RSA_TRACE("RSA OAEP Decoding");
 
@@ -888,7 +907,7 @@ static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
 	mod_op.result.data   = seed.data;
 	mod_op.result.length = seed.length;
 
-	ret = libimxcrypt_xor_mod_n(&mod_op);
+	ret = libnxpcrypt_xor_mod_n(&mod_op);
 	if (ret != TEE_SUCCESS)
 		goto exit_oaep_decrypt;
 
@@ -919,7 +938,7 @@ static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
 	mod_op.result.data   = DB.data;
 	mod_op.result.length = DB.length;
 
-	ret = libimxcrypt_xor_mod_n(&mod_op);
+	ret = libnxpcrypt_xor_mod_n(&mod_op);
 	if (ret != TEE_SUCCESS)
 		goto exit_oaep_decrypt;
 
@@ -937,7 +956,7 @@ static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
 	/* Check Hash values */
 	if (memcmp(DB.data, lHash.data, lHash.length) != 0) {
 		RSA_TRACE("Hash error");
-		ret = TEE_ERROR_GENERIC;
+		ret = TEE_ERROR_BAD_PARAMETERS;
 		goto exit_oaep_decrypt;
 	}
 
@@ -949,7 +968,7 @@ static TEE_Result do_oaep_decoding(struct imxcrypt_rsa_ed *rsa_data)
 
 	if (b01_idx == db_size) {
 		RSA_TRACE("byte 0x01 not present");
-		ret = TEE_ERROR_GENERIC;
+		ret = TEE_ERROR_BAD_PARAMETERS;
 		goto exit_oaep_decrypt;
 	}
 
@@ -984,7 +1003,7 @@ exit_oaep_decrypt:
  * @retval TEE_ERROR_NOT_IMPLEMENTED   Algorithm not implemented
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_oaep_encoding(struct imxcrypt_rsa_ed *rsa_data)
+static TEE_Result do_oaep_encoding(struct nxpcrypt_rsa_ed *rsa_data)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 
@@ -999,9 +1018,9 @@ static TEE_Result do_oaep_encoding(struct imxcrypt_rsa_ed *rsa_data)
 	size_t db_size;
 	size_t ps_size;
 
-	struct imxcrypt_rsa_mgf mgf_data;
-	struct imxcrypt_rsa_ed  enc_data = {0};
-	struct imxcrypt_mod_op  mod_op;
+	struct nxpcrypt_rsa_mgf mgf_data;
+	struct nxpcrypt_rsa_ed  enc_data = {0};
+	struct nxpcrypt_mod_op  mod_op;
 
 	RSA_TRACE("RSA OAEP Encoding");
 
@@ -1123,7 +1142,7 @@ static TEE_Result do_oaep_encoding(struct imxcrypt_rsa_ed *rsa_data)
 	mod_op.result.data   = maskedDB.data;
 	mod_op.result.length = maskedDB.length;
 
-	ret = libimxcrypt_xor_mod_n(&mod_op);
+	ret = libnxpcrypt_xor_mod_n(&mod_op);
 	if (ret != TEE_SUCCESS)
 		goto exit_oaep_encrypt;
 
@@ -1158,7 +1177,7 @@ static TEE_Result do_oaep_encoding(struct imxcrypt_rsa_ed *rsa_data)
 	mod_op.result.data   = maskedSeed.data;
 	mod_op.result.length = maskedSeed.length;
 
-	ret = libimxcrypt_xor_mod_n(&mod_op);
+	ret = libnxpcrypt_xor_mod_n(&mod_op);
 	if (ret != TEE_SUCCESS)
 		goto exit_oaep_encrypt;
 
@@ -1193,8 +1212,8 @@ exit_oaep_encrypt:
  * @retval TEE_ERROR_OUT_OF_MEMORY     Out of memory
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_caam_encrypt(struct imxcrypt_rsa_ed *rsa_data,
-				descEntry_t operation)
+static TEE_Result do_caam_encrypt(struct nxpcrypt_rsa_ed *rsa_data,
+				uint32_t operation)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus;
@@ -1207,7 +1226,7 @@ static TEE_Result do_caam_encrypt(struct imxcrypt_rsa_ed *rsa_data,
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t    desc    = NULL;
-	uint8_t          desclen = 1;
+	uint8_t          desclen = 0;
 
 	RSA_TRACE("RSA Encrypt mode %d", rsa_data->rsa_id);
 
@@ -1248,17 +1267,21 @@ static TEE_Result do_caam_encrypt(struct imxcrypt_rsa_ed *rsa_data,
 		goto exit_encrypt;
 	}
 
-	desc[desclen++] = PDB_RSA_ENC_E_SIZE(key.e.length) |
-					PDB_RSA_ENC_N_SIZE(key.n.length);
-	desc[desclen++] = paddr_src;
-	desc[desclen++] = cipher_align.paddr;
-	desc[desclen++] = key.n.paddr;
-	desc[desclen++] = key.e.paddr;
-	desc[desclen++] = PDB_RSA_ENC_F_SIZE(rsa_data->message.length);
-	desc[desclen++] = operation;
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
+	desc_add_word(desc, PDB_RSA_ENC_E_SIZE(key.e.length) |
+			PDB_RSA_ENC_N_SIZE(key.n.length));
+	desc_add_ptr(desc, paddr_src);
+	desc_add_ptr(desc, cipher_align.paddr);
+	desc_add_ptr(desc, key.n.paddr);
+	desc_add_ptr(desc, key.e.paddr);
+	desc_add_word(desc, PDB_RSA_ENC_F_SIZE(rsa_data->message.length));
+	desc_add_word(desc, operation);
 
 	/* Set the descriptor Header with length */
-	desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+	desclen = desc_get_len(desc);
+	desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 	RSA_DUMPDESC(desc);
 
 	cache_operation(TEE_CACHECLEAN, rsa_data->message.data,
@@ -1288,7 +1311,7 @@ static TEE_Result do_caam_encrypt(struct imxcrypt_rsa_ed *rsa_data,
 		ret = TEE_SUCCESS;
 	} else {
 		RSA_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_encrypt:
@@ -1311,8 +1334,8 @@ exit_encrypt:
  * @retval TEE_ERROR_OUT_OF_MEMORY     Out of memory
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
-				descEntry_t operation)
+static TEE_Result do_caam_decrypt(struct nxpcrypt_rsa_ed *rsa_data,
+				uint32_t operation)
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 	enum CAAM_Status retstatus;
@@ -1329,7 +1352,7 @@ static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
 
 	struct jr_jobctx jobctx  = {0};
 	descPointer_t    desc    = NULL;
-	uint8_t          desclen = 1;
+	uint8_t          desclen = 0;
 
 	struct caambuf   size_msg = {0};
 
@@ -1422,47 +1445,50 @@ static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
 		goto exit_decrypt;
 	}
 
+	desc_init(desc);
+	desc_add_word(desc, DESC_HEADER(0));
+
 	/* Build the descriptor function of the Private Key format */
 	switch (key.format) {
 	case 1:
-		desc[desclen++] = PDB_RSA_DEC_D_SIZE(key.d.length) |
-					PDB_RSA_DEC_N_SIZE(key.n.length);
-		desc[desclen++] = paddr_src;
-		desc[desclen++] = msg_align.paddr;
-		desc[desclen++] = key.n.paddr;
-		desc[desclen++] = key.d.paddr;
-		break;
+		desc_add_word(desc, PDB_RSA_DEC_D_SIZE(key.d.length) |
+				PDB_RSA_DEC_N_SIZE(key.n.length));
+		desc_add_ptr(desc, paddr_src);
+		desc_add_ptr(desc, msg_align.paddr);
+		desc_add_ptr(desc, key.n.paddr);
+		desc_add_ptr(desc, key.d.paddr);
 
+		break;
 #if (RSA_PRIVATE_KEY_FORMAT > 1)
 	case 2:
-		desc[desclen++] = PDB_RSA_DEC_D_SIZE(key.d.length) |
-					PDB_RSA_DEC_N_SIZE(key.n.length);
-		desc[desclen++] = paddr_src;
-		desc[desclen++] = msg_align.paddr;
-		desc[desclen++] = key.d.paddr;
-		desc[desclen++] = key.p.paddr;
-		desc[desclen++] = key.q.paddr;
-		desc[desclen++] = tmp.paddr;
-		desc[desclen++] = tmp.paddr + (key.p.length * sizeof(uint8_t));
-		desc[desclen++] = PDB_RSA_DEC_Q_SIZE(key.q.length) |
-					PDB_RSA_DEC_P_SIZE(key.p.length);
+		desc_add_word(desc, PDB_RSA_DEC_D_SIZE(key.d.length) |
+				PDB_RSA_DEC_N_SIZE(key.n.length));
+		desc_add_ptr(desc, paddr_src);
+		desc_add_ptr(desc, msg_align.paddr);
+		desc_add_ptr(desc, key.d.paddr);
+		desc_add_ptr(desc, key.p.paddr);
+		desc_add_ptr(desc, key.q.paddr);
+		desc_add_ptr(desc, tmp.paddr);
+		desc_add_ptr(desc, (tmp.paddr + (key.p.length * sizeof(uint8_t))));
+		desc_add_word(desc, PDB_RSA_DEC_Q_SIZE(key.q.length) |
+				PDB_RSA_DEC_P_SIZE(key.p.length));
 		break;
 #endif
 
 #if (RSA_PRIVATE_KEY_FORMAT > 2)
 	case 3:
-		desc[desclen++] = PDB_RSA_DEC_N_SIZE(key.n.length);
-		desc[desclen++] = paddr_src;
-		desc[desclen++] = msg_align.paddr;
-		desc[desclen++] = key.qp.paddr;
-		desc[desclen++] = key.p.paddr;
-		desc[desclen++] = key.q.paddr;
-		desc[desclen++] = key.dp.paddr;
-		desc[desclen++] = key.dq.paddr;
-		desc[desclen++] = tmp.paddr;
-		desc[desclen++] = tmp.paddr + (key.p.length * sizeof(uint8_t));
-		desc[desclen++] = PDB_RSA_DEC_Q_SIZE(key.q.length) |
-					PDB_RSA_DEC_P_SIZE(key.p.length);
+		desc_add_word(desc, PDB_RSA_DEC_N_SIZE(key.n.length));
+		desc_add_ptr(desc, paddr_src);
+		desc_add_ptr(desc, msg_align.paddr);
+		desc_add_ptr(desc, key.qp.paddr);
+		desc_add_ptr(desc, key.p.paddr);
+		desc_add_ptr(desc, key.q.paddr);
+		desc_add_ptr(desc, key.dp.paddr);
+		desc_add_ptr(desc, key.dq.paddr);
+		desc_add_ptr(desc, tmp.paddr);
+		desc_add_ptr(desc, (tmp.paddr + (key.p.length * sizeof(uint8_t))));
+		desc_add_word(desc, PDB_RSA_DEC_Q_SIZE(key.q.length) |
+				PDB_RSA_DEC_P_SIZE(key.p.length));
 		break;
 #endif
 
@@ -1472,18 +1498,23 @@ static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
 	}
 
 	/* Set the Decryption operation type */
-	desc[desclen++] = operation | PROT_RSA_DEC_KEYFORM(key.format);
+	desc_add_word(desc, (operation | PROT_RSA_DEC_KEYFORM(key.format)));
 
 	if (operation == RSA_DECRYPT(PKCS_V1_5)) {
 		/* Get the PPKCS1 v1.5 Message length generated */
-		desc[desclen++] = ST_NOIMM_OFF(CLASS_DECO, REG_MATH0, 4, 4);
-		desc[desclen++] = size_msg.paddr;
-
+		desc_add_word(desc, ST_NOIMM_OFF(CLASS_DECO, REG_MATH0, 4, 4));
+		desc_add_ptr(desc, size_msg.paddr);
 		/* Set the descriptor Header with length */
-		desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1 - 2));
+		desclen = desc_get_len(desc);
+#ifdef	CFG_PHYS_64BIT
+		desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1 - 3)));
+#else
+		desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1 - 2)));
+#endif
 	} else {
+		desclen = desc_get_len(desc);
 		/* Set the descriptor Header with length */
-		desc[0] = DESC_HEADER_IDX(desclen, (desclen - 1));
+		desc_update_hdr(desc, DESC_HEADER_IDX(desclen, (desclen - 1)));
 	}
 
 	RSA_DUMPDESC(desc);
@@ -1518,7 +1549,8 @@ static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
 			/* PKCS 1 v1.5 */
 			cache_operation(TEE_CACHEINVALIDATE, size_msg.data,
 							size_msg.length);
-			rsa_data->message.length = U8_TO_U32(size_msg.data);
+
+			rsa_data->message.length = get32(size_msg.data);
 			if (realloc == 1)
 				memcpy(rsa_data->message.data, msg_align.data,
 						rsa_data->message.length);
@@ -1529,7 +1561,7 @@ static TEE_Result do_caam_decrypt(struct imxcrypt_rsa_ed *rsa_data,
 		ret = TEE_SUCCESS;
 	} else {
 		RSA_TRACE("CAAM Status 0x%08"PRIx32"", jobctx.status);
-		ret = TEE_ERROR_GENERIC;
+		ret = job_status_to_tee_result(jobctx.status);
 	}
 
 exit_decrypt:
@@ -1557,7 +1589,7 @@ exit_decrypt:
  * @retval TEE_ERROR_NOT_IMPLEMENTED   Algorithm not implemented
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_encrypt(struct imxcrypt_rsa_ed *rsa_data)
+static TEE_Result do_encrypt(struct nxpcrypt_rsa_ed *rsa_data)
 {
 	TEE_Result ret = TEE_ERROR_NOT_IMPLEMENTED;
 
@@ -1591,7 +1623,7 @@ static TEE_Result do_encrypt(struct imxcrypt_rsa_ed *rsa_data)
  * @retval TEE_ERROR_NOT_IMPLEMENTED   Algorithm not implemented
  * @retval TEE_ERROR_GENERIC           Generic error
  */
-static TEE_Result do_decrypt(struct imxcrypt_rsa_ed *rsa_data)
+static TEE_Result do_decrypt(struct nxpcrypt_rsa_ed *rsa_data)
 {
 	TEE_Result ret = TEE_ERROR_NOT_IMPLEMENTED;
 
@@ -1619,7 +1651,7 @@ static TEE_Result do_decrypt(struct imxcrypt_rsa_ed *rsa_data)
 /**
  * @brief   Registration of the RSA Driver
  */
-struct imxcrypt_rsa driver_rsa = {
+struct nxpcrypt_rsa driver_rsa = {
 	.alloc_keypair   = &do_allocate_keypair,
 	.alloc_publickey = &do_allocate_publickey,
 	.free_publickey  = &do_free_publickey,
@@ -1646,7 +1678,7 @@ enum CAAM_Status caam_rsa_init(vaddr_t ctrl_addr)
 	caam_era = hal_ctrl_caam_era(ctrl_addr);
 	RSA_TRACE("CAAM Era %d", caam_era);
 
-	if (imxcrypt_register(CRYPTO_RSA, &driver_rsa) == 0)
+	if (nxpcrypt_register(CRYPTO_RSA, &driver_rsa) == 0)
 		retstatus = CAAM_NO_ERROR;
 
 	return retstatus;
