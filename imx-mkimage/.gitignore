@@ -1,0 +1,6 @@
+*.bin
+*.itb
+*.dtb
+mkimage_imx8
+mkimage_uboot
+
