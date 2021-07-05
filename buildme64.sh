@@ -50,6 +50,7 @@ usage() { echo "Usage: $0 [-b BOARD_1] [-b BOARD_2] [-t TARGET_1] .. [-c]"      
           echo "          [-b|-board]"                                            1>&2
           echo "            { all,"                                               1>&2
           echo "              8M, NXPEVK_iMX8M_4GB,"                              1>&2
+          echo "              PHANBELL,"                                          1>&2
           echo "              8Mm, NXPEVK_iMX8M_Mini_2GB"                         1>&2
           echo "              8Mn, EVK_iMX8MN_2GB }"                              1>&2
           echo ""                                                                 1>&2
@@ -73,6 +74,7 @@ script_name=$0
 build_8m=0
 build_8m_mini=0
 build_8m_nano=0
+build_8m_phanbell=0
 
 clean=0
 build_uboot=0
@@ -164,6 +166,9 @@ do
         case "${2}" in
             8M|NXPEVK_iMX8M_4GB)
                 build_8m=1
+                ;;
+            PHANBELL)
+                build_8m_phanbell=1
                 ;;
             8Mm|NXPEVK_iMX8M_Mini_2GB)
                 build_8m_mini=1
@@ -385,6 +390,24 @@ echo
 #   1) i.MX 8MQ EVK config
 #   2) i.MX 8M Mini EVK config
 #   3) i.MX 8M Nano EVK config
+
+# i.MX 8MQ PHANBELL config
+if [ $build_8m_phanbell -eq 1 ]; then
+    echo "Board type IMX8M Phanbell"
+    bsp_folder="NXPPhanbell_iMX8M_1GB"
+    uefi_folder="MCIMX8M_PHANBELL_1GB"
+    uboot_defconfig="imx8mq_phanbell_nt_defconfig"
+    atf_plat="imx8mq"
+    optee_plat="mx8mqevk"
+    uboot_dtb="fsl-imx8mq-phanbell.dtb"
+    mkimage_SOC="iMX8M"
+
+    build_board
+    # check return value
+    if [ $? -gt 0 ]; then
+        exit $?
+    fi
+fi
 
 # i.MX 8MQ EVK config
 if [ $build_8m -eq 1 ]; then
