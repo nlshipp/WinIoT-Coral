@@ -128,6 +128,8 @@
     <CustomBuildStep>
       <Command>set PATH=$(PATH);$(WDKContentRoot)tools\bin\i386\
 set SIGN_OEM=1
+set SIGN_WITH_TIMESTAMP=0
+set TIMESERVER=/t $(TimestampServer)
 sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -155,6 +157,8 @@ sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     <CustomBuildStep>
       <Command>set PATH=$(PATH);$(WDKContentRoot)tools\bin\i386\
 set SIGN_OEM=1
+set SIGN_WITH_TIMESTAMP=0
+set TIMESERVER=/t $(TimestampServer)
 sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -178,6 +182,8 @@ sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     <CustomBuildStep>
       <Command>set PATH=$(PATH);$(WDKContentRoot)tools\bin\i386\
 set SIGN_OEM=1
+set SIGN_WITH_TIMESTAMP=0
+set TIMESERVER=/t $(TimestampServer)
 sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -203,6 +209,8 @@ sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     <CustomBuildStep>
       <Command>set PATH=$(PATH);$(WDKContentRoot)tools\bin\i386\
 set SIGN_OEM=1
+set SIGN_WITH_TIMESTAMP=0
+set TIMESERVER=/t $(TimestampServer)
 sign -hal $(OutDir)$(TARGETNAME)$(TARGETEXT)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
