@@ -1,34 +1,32 @@
 /*
 * Copyright 2020 NXP
 * All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted (subject to the limitations in the disclaimer
-* below) provided that the following conditions are met:
-*
-* * Redistributions of source code must retain the above copyright notice, this
-* list of conditions and the following disclaimer.
-*
-* * Redistributions in binary form must reproduce the above copyright notice,
-* this list of conditions and the following disclaimer in the documentation
-* and/or other materials provided with the distribution.
-*
-* * Neither the name of NXP nor the names of its contributors may be used to
-* endorse or promote products derived from this software without specific prior
-* written permission.
-*
-* NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
-* LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-* THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-* GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-* OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
+* 
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+* 
+* * Redistributions of source code must retain the above copyright notice, this list
+*   of conditions and the following disclaimer.
+* 
+* * Redistributions in binary form must reproduce the above copyright notice, this
+*   list of conditions and the following disclaimer in the documentation and/or
+*   other materials provided with the distribution.
+* 
+* * Neither the name of the copyright holder nor the names of its
+*   contributors may be used to endorse or promote products derived from this
+*   software without specific prior written permission.
+* 
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+* ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+* 
 */
 
 #ifndef _TCPC_PHY_IO_MAP_H_
@@ -58,11 +56,11 @@
 #define TCPC_PHY_EXTENDED_STATUS                 0x0020  /* EXTENDED_STATUS Register offset */
 #define TCPC_PHY_ALERT_EXTENDED                  0x0021  /* ALERT_EXTENDED Register offset */
 #define TCPC_PHY_COMMAND                         0x0023  /* COMMAND Register offset */
-#define TCPC_PHY_DEVICE_CAPABILITIES_1           0x0024  /* DEVICE_CAPABILITIES_1 Register offset */
-#define TCPC_PHY_DEVICE_CAPABILITIES_2           0x0026  /* DEVICE_CAPABILITIES_2 Register offset */
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES     0x0028  /* STANDARD_INPUT_CAPABILITIES Register offset */
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES    0x0029  /* STANDARD_OUTPUT_CAPABILITIES Register offset */
-#define TCPC_PHY_CONFIG_EXTENDED1                0x002A  /* CONFIG_EXTENDED1 Register offset */
+#define TCPC_PHY_DEV_CAP_1                       0x0024  /* DEVICE_CAPABILITIES_1 Register offset */
+#define TCPC_PHY_DEV_CAP_2                       0x0026  /* DEVICE_CAPABILITIES_2 Register offset */
+#define TCPC_PHY_STD_INPUT_CAP                   0x0028  /* STANDARD_INPUT_CAPABILITIES Register offset */
+#define TCPC_PHY_STD_OUTPUT_CAP                  0x0029  /* STANDARD_OUTPUT_CAPABILITIES Register offset */
+#define TCPC_PHY_CFG_EXT_1                       0x002A  /* CONFIG_EXTENDED1 Register offset */
 #define TCPC_PHY_GENERIC_TIMER                   0x002C  /* GENERIC_TIMER Register offset */
 #define TCPC_PHY_MESSAGE_HEADER_INFO             0x002E  /* MESSAGE_HEADER_INFO Register offset */
 #define TCPC_PHY_RECEIVE_DETECT                  0x002F  /* RECEIVE_DETECT Register offset */
@@ -450,112 +448,130 @@
 #define TCPC_PHY_COMMAND_CMD_I2C_IDLE                                                                          255
 
 /*
-* TCPC_PHY_DEVICE_CAPABILITIES_1 register bits *
+* TCPC_PHY_DEV_CAP_1 register bits *
 */
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_HIGH_VOLTAGE_TARGET_MASK                                           0x00008000
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_HIGH_VOLTAGE_TARGET_SHIFT                                          15
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_OCP_REPORTING_MASK                                                 0x00004000
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_OCP_REPORTING_SHIFT                                                14
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_OVP_REPORTING_MASK                                                 0x00002000
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_OVP_REPORTING_SHIFT                                                13
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_BLEED_DISCHARGE_MASK                                                    0x00001000
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_BLEED_DISCHARGE_SHIFT                                                   12
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_FORCE_DISCHARGE_MASK                                                    0x00000800
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_FORCE_DISCHARGE_SHIFT                                                   11
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_MEASUREMENT_AND_ALARM_CAPABLE_MASK                                 0x00000400
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_VBUS_MEASUREMENT_AND_ALARM_CAPABLE_SHIFT                                10
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_RESISTOR_SUPPORTED_MASK                                          0x00000300
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_RESISTOR_SUPPORTED_SHIFT                                         8
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_POWER_ROLES_SUPPORTED_MASK                                              0x000000E0
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_POWER_ROLES_SUPPORTED_SHIFT                                             5
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOP_DBG_SOP_DBG_SUPPORT_MASK                                            0x00000010
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOP_DBG_SOP_DBG_SUPPORT_SHIFT                                           4
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_VCONN_MASK                                                       0x00000008
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_VCONN_SHIFT                                                      3
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SINK_VBUS_MASK                                                          0x00000004
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SINK_VBUS_SHIFT                                                         2
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_HIGH_VOLTAGE_VBUS_MASK                                           0x00000002
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_HIGH_VOLTAGE_VBUS_SHIFT                                          1
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_VBUS_MASK                                                        0x00000001
-#define TCPC_PHY_DEVICE_CAPABILITIES_1_SOURCE_VBUS_SHIFT                                                       0
+#define TCPC_PHY_DEV_CAP_1_VBUS_HIGH_VOLTAGE_TARGET_MASK                                                       0x00008000
+#define TCPC_PHY_DEV_CAP_1_VBUS_HIGH_VOLTAGE_TARGET_SHIFT                                                      15
+#define TCPC_PHY_DEV_CAP_1_VBUS_OCP_REPORTING_MASK                                                             0x00004000
+#define TCPC_PHY_DEV_CAP_1_VBUS_OCP_REPORTING_SHIFT                                                            14
+#define TCPC_PHY_DEV_CAP_1_VBUS_OVP_REPORTING_MASK                                                             0x00002000
+#define TCPC_PHY_DEV_CAP_1_VBUS_OVP_REPORTING_SHIFT                                                            13
+#define TCPC_PHY_DEV_CAP_1_BLEED_DISCHARGE_MASK                                                                0x00001000
+#define TCPC_PHY_DEV_CAP_1_BLEED_DISCHARGE_SHIFT                                                               12
+#define TCPC_PHY_DEV_CAP_1_FORCE_DISCHARGE_MASK                                                                0x00000800
+#define TCPC_PHY_DEV_CAP_1_FORCE_DISCHARGE_SHIFT                                                               11
+#define TCPC_PHY_DEV_CAP_1_VBUS_MEAS_AND_ALARM_CAPABLE_MASK                                                    0x00000400
+#define TCPC_PHY_DEV_CAP_1_VBUS_MEAS_AND_ALARM_CAPABLE_SHIFT                                                   10
+#define TCPC_PHY_DEV_CAP_1_SRC_RES_MASK                                                                        0x00000300
+#define TCPC_PHY_DEV_CAP_1_SRC_RES_SHIFT                                                                       8
+#define TCPC_PHY_DEV_CAP_1_PWR_ROLES_MASK                                                                      0x000000E0
+#define TCPC_PHY_DEV_CAP_1_PWR_ROLES_SHIFT                                                                     5
+#define TCPC_PHY_DEV_CAP_1_SOP_DBG_SOP_DBG_SUPPORT_MASK                                                        0x00000010
+#define TCPC_PHY_DEV_CAP_1_SOP_DBG_SOP_DBG_SUPPORT_SHIFT                                                       4
+#define TCPC_PHY_DEV_CAP_1_SOURCE_VCONN_MASK                                                                   0x00000008
+#define TCPC_PHY_DEV_CAP_1_SOURCE_VCONN_SHIFT                                                                  3
+#define TCPC_PHY_DEV_CAP_1_SINK_VBUS_MASK                                                                      0x00000004
+#define TCPC_PHY_DEV_CAP_1_SINK_VBUS_SHIFT                                                                     2
+#define TCPC_PHY_DEV_CAP_1_SOURCE_HIGH_VOLTAGE_VBUS_MASK                                                       0x00000002
+#define TCPC_PHY_DEV_CAP_1_SOURCE_HIGH_VOLTAGE_VBUS_SHIFT                                                      1
+#define TCPC_PHY_DEV_CAP_1_SOURCE_VBUS_MASK                                                                    0x00000001
+#define TCPC_PHY_DEV_CAP_1_SOURCE_VBUS_SHIFT                                                                   0
 
 /*
-* TCPC_PHY_DEVICE_CAPABILITIES_2 register bits *
+* TCPC_PHY_DEV_CAP_2 register bits *
 */
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_GENERIC_TIMER_MASK                                                      0x00002000
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_GENERIC_TIMER_SHIFT                                                     13
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_LONG_MESSAGE_MASK                                                       0x00001000
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_LONG_MESSAGE_SHIFT                                                      12
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SMBUS_PEC_MASK                                                          0x00000800
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SMBUS_PEC_SHIFT                                                         11
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SOURCE_FR_SWAP_MASK                                                     0x00000400
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SOURCE_FR_SWAP_SHIFT                                                    10
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SINK_FR_SWAP_MASK                                                       0x00000200
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SINK_FR_SWAP_SHIFT                                                      9
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_WATCHDOG_TIMER_MASK                                                     0x00000100
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_WATCHDOG_TIMER_SHIFT                                                    8
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SINK_DISCONNECT_DETECTION_MASK                                          0x00000080
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_SINK_DISCONNECT_DETECTION_SHIFT                                         7
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_STOP_DISCHARGE_THRESHOLD_MASK                                           0x00000040
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_STOP_DISCHARGE_THRESHOLD_SHIFT                                          6
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VBUS_VOLTAGE_ALARM_LSB_MASK                                             0x00000030
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VBUS_VOLTAGE_ALARM_LSB_SHIFT                                            4
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VCONN_POWER_SUPPORTED_MASK                                              0x0000000E
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VCONN_POWER_SUPPORTED_SHIFT                                             1
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VCONN_OVERCURRENT_FAULT_CAPABLE_MASK                                    0x00000001
-#define TCPC_PHY_DEVICE_CAPABILITIES_2_VCONN_OVERCURRENT_FAULT_CAPABLE_SHIFT                                   0
+#define TCPC_PHY_DEV_CAP_2_GENERIC_TIMER_MASK                                                                  0x00002000
+#define TCPC_PHY_DEV_CAP_2_GENERIC_TIMER_SHIFT                                                                 13
+#define TCPC_PHY_DEV_CAP_2_LONG_MESSAGE_MASK                                                                   0x00001000
+#define TCPC_PHY_DEV_CAP_2_LONG_MESSAGE_SHIFT                                                                  12
+#define TCPC_PHY_DEV_CAP_2_SMBUS_PEC_MASK                                                                      0x00000800
+#define TCPC_PHY_DEV_CAP_2_SMBUS_PEC_SHIFT                                                                     11
+#define TCPC_PHY_DEV_CAP_2_SOURCE_FR_SWAP_MASK                                                                 0x00000400
+#define TCPC_PHY_DEV_CAP_2_SOURCE_FR_SWAP_SHIFT                                                                10
+#define TCPC_PHY_DEV_CAP_2_SINK_FR_SWAP_MASK                                                                   0x00000200
+#define TCPC_PHY_DEV_CAP_2_SINK_FR_SWAP_SHIFT                                                                  9
+#define TCPC_PHY_DEV_CAP_2_WATCHDOG_TIMER_MASK                                                                 0x00000100
+#define TCPC_PHY_DEV_CAP_2_WATCHDOG_TIMER_SHIFT                                                                8
+#define TCPC_PHY_DEV_CAP_2_SINK_DISCONNECT_DETECTION_MASK                                                      0x00000080
+#define TCPC_PHY_DEV_CAP_2_SINK_DISCONNECT_DETECTION_SHIFT                                                     7
+#define TCPC_PHY_DEV_CAP_2_STOP_DISCHARGE_THRESHOLD_MASK                                                       0x00000040
+#define TCPC_PHY_DEV_CAP_2_STOP_DISCHARGE_THRESHOLD_SHIFT                                                      6
+#define TCPC_PHY_DEV_CAP_2_VBUS_VOLTAGE_ALARM_LSB_MASK                                                         0x00000030
+#define TCPC_PHY_DEV_CAP_2_VBUS_VOLTAGE_ALARM_LSB_SHIFT                                                        4
+#define TCPC_PHY_DEV_CAP_2_VCONN_POWER_SUPPORTED_MASK                                                          0x0000000E
+#define TCPC_PHY_DEV_CAP_2_VCONN_POWER_SUPPORTED_SHIFT                                                         1
+#define TCPC_PHY_DEV_CAP_2_VCONN_OVERCURRENT_FAULT_CAPABLE_MASK                                                0x00000001
+#define TCPC_PHY_DEV_CAP_2_VCONN_OVERCURRENT_FAULT_CAPABLE_SHIFT                                               0
 
 /*
-* TCPC_PHY_STANDARD_INPUT_CAPABILITIES register bits *
+* TCPC_PHY_STD_INPUT_CAP register bits *
 */
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_SOURCE_FAST_ROLE_SWAP_MASK                                        0x00000018
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_SOURCE_FAST_ROLE_SWAP_SHIFT                                       3
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_VBUS_EXTERNAL_OVER_VOLTAGE_FAULT_MASK                             0x00000004
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_VBUS_EXTERNAL_OVER_VOLTAGE_FAULT_SHIFT                            2
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_VBUS_EXTERNAL_OVER_CURRENT_FAULT_MASK                             0x00000002
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_VBUS_EXTERNAL_OVER_CURRENT_FAULT_SHIFT                            1
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_FORCE_OFF_VBUS_MASK                                               0x00000001
-#define TCPC_PHY_STANDARD_INPUT_CAPABILITIES_FORCE_OFF_VBUS_SHIFT                                              0
+#define TCPC_PHY_STD_INPUT_CAP_SOURCE_FAST_ROLE_SWAP_MASK                                                      0x00000018
+#define TCPC_PHY_STD_INPUT_CAP_SOURCE_FAST_ROLE_SWAP_SHIFT                                                     3
+#define TCPC_PHY_STD_INPUT_CAP_VBUS_EXTERNAL_OVER_VOLTAGE_FAULT_MASK                                           0x00000004
+#define TCPC_PHY_STD_INPUT_CAP_VBUS_EXTERNAL_OVER_VOLTAGE_FAULT_SHIFT                                          2
+#define TCPC_PHY_STD_INPUT_CAP_VBUS_EXTERNAL_OVER_CURRENT_FAULT_MASK                                           0x00000002
+#define TCPC_PHY_STD_INPUT_CAP_VBUS_EXTERNAL_OVER_CURRENT_FAULT_SHIFT                                          1
+#define TCPC_PHY_STD_INPUT_CAP_FORCE_OFF_VBUS_MASK                                                             0x00000001
+#define TCPC_PHY_STD_INPUT_CAP_FORCE_OFF_VBUS_SHIFT                                                            0
 
 /*
-* TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES register bits *
+* TCPC_PHY_STD_OUTPUT_CAP register bits *
 */
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_VBUS_SINK_DISCONNECT_DETECT_INDICATOR_MASK                       0x00000080
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_VBUS_SINK_DISCONNECT_DETECT_INDICATOR_SHIFT                      7
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_DEBUG_ACCESSORY_INDICATOR_MASK                                   0x00000040
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_DEBUG_ACCESSORY_INDICATOR_SHIFT                                  6
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_VBUS_PRESENT_MONITOR_MASK                                        0x00000020
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_VBUS_PRESENT_MONITOR_SHIFT                                       5
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_AUDIO_ADAPTER_ACCESSORY_INDICATOR_MASK                           0x00000010
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_AUDIO_ADAPTER_ACCESSORY_INDICATOR_SHIFT                          4
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_ACTIVE_CABLE_INDICATOR_MASK                                      0x00000008
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_ACTIVE_CABLE_INDICATOR_SHIFT                                     3
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_MUX_CONFIGURATION_CONTROL_MASK                                   0x00000004
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_MUX_CONFIGURATION_CONTROL_SHIFT                                  2
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_CONNECTION_PRESENT_MASK                                          0x00000002
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_CONNECTION_PRESENT_SHIFT                                         1
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_CONNECTOR_ORIENTATION_MASK                                       0x00000001
-#define TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_CONNECTOR_ORIENTATION_SHIFT                                      0
+#define TCPC_PHY_STD_OUTPUT_CAP_VBUS_SINK_DISCONNECT_DETECT_INDICATOR_MASK                                     0x00000080
+#define TCPC_PHY_STD_OUTPUT_CAP_VBUS_SINK_DISCONNECT_DETECT_INDICATOR_SHIFT                                    7
+#define TCPC_PHY_STD_OUTPUT_CAP_DEBUG_ACCESSORY_INDICATOR_MASK                                                 0x00000040
+#define TCPC_PHY_STD_OUTPUT_CAP_DEBUG_ACCESSORY_INDICATOR_SHIFT                                                6
+#define TCPC_PHY_STD_OUTPUT_CAP_VBUS_PRESENT_MONITOR_MASK                                                      0x00000020
+#define TCPC_PHY_STD_OUTPUT_CAP_VBUS_PRESENT_MONITOR_SHIFT                                                     5
+#define TCPC_PHY_STD_OUTPUT_CAP_AUDIO_ADAPTER_ACCESSORY_INDICATOR_MASK                                         0x00000010
+#define TCPC_PHY_STD_OUTPUT_CAP_AUDIO_ADAPTER_ACCESSORY_INDICATOR_SHIFT                                        4
+#define TCPC_PHY_STD_OUTPUT_CAP_ACTIVE_CABLE_INDICATOR_MASK                                                    0x00000008
+#define TCPC_PHY_STD_OUTPUT_CAP_ACTIVE_CABLE_INDICATOR_SHIFT                                                   3
+#define TCPC_PHY_STD_OUTPUT_CAP_MUX_CONFIGURATION_CONTROL_MASK                                                 0x00000004
+#define TCPC_PHY_STD_OUTPUT_CAP_MUX_CONFIGURATION_CONTROL_SHIFT                                                2
+#define TCPC_PHY_STD_OUTPUT_CAP_CONNECTION_PRESENT_MASK                                                        0x00000002
+#define TCPC_PHY_STD_OUTPUT_CAP_CONNECTION_PRESENT_SHIFT                                                       1
+#define TCPC_PHY_STD_OUTPUT_CAP_CONNECTOR_ORIENTATION_MASK                                                     0x00000001
+#define TCPC_PHY_STD_OUTPUT_CAP_CONNECTOR_ORIENTATION_SHIFT                                                    0
 
 /*
-* TCPC_PHY_CONFIG_EXTENDED1 register bits *
+* TCPC_PHY_CFG_EXT_1 register bits *
 */
-#define TCPC_PHY_CONFIG_EXTENDED1_FR_SWAP_BIDIRECTIONAL_PIN_MASK                                               0x00000080
-#define TCPC_PHY_CONFIG_EXTENDED1_FR_SWAP_BIDIRECTIONAL_PIN_SHIFT                                              7
-#define TCPC_PHY_CONFIG_EXTENDED1_STANDARD_INPUT_SOURCE_FR_SWAP_MASK                                           0x00000040
-#define TCPC_PHY_CONFIG_EXTENDED1_STANDARD_INPUT_SOURCE_FR_SWAP_SHIFT                                          6
+#define TCPC_PHY_CFG_EXT_1_FR_SWAP_BIDIRECTIONAL_PIN_MASK                                                      0x00000080
+#define TCPC_PHY_CFG_EXT_1_FR_SWAP_BIDIRECTIONAL_PIN_SHIFT                                                     7
+#define TCPC_PHY_CFG_EXT_1_STANDARD_INPUT_SOURCE_FR_SWAP_MASK                                                  0x00000040
+#define TCPC_PHY_CFG_EXT_1_STANDARD_INPUT_SOURCE_FR_SWAP_SHIFT                                                 6
 
 /*
 * TCPC_PHY_MESSAGE_HEADER_INFO register bits *
 */
-#define TCPC_PHY_MESSAGE_HEADER_INFO_XXX_MASK                                                                  0x00000080
-#define TCPC_PHY_MESSAGE_HEADER_INFO_XXX_SHIFT                                                                 7
+#define TCPC_PHY_MESSAGE_HEADER_INFO_CABLE_PLUG_MASK                                                           0x00000010
+#define TCPC_PHY_MESSAGE_HEADER_INFO_CABLE_PLUG_SHIFT                                                          4
+#define TCPC_PHY_MESSAGE_HEADER_INFO_DATA_ROLE_MASK                                                            0x00000008
+#define TCPC_PHY_MESSAGE_HEADER_INFO_DATA_ROLE_SHIFT                                                           3
+#define TCPC_PHY_MESSAGE_HEADER_INFO_USB_PD_SPEC_REV_MASK                                                      0x00000006
+#define TCPC_PHY_MESSAGE_HEADER_INFO_USB_PD_SPEC_REV_SHIFT                                                     1
+#define TCPC_PHY_MESSAGE_HEADER_INFO_POWER_ROLE_MASK                                                           0x00000001
+#define TCPC_PHY_MESSAGE_HEADER_INFO_POWER_ROLE_SHIFT                                                          0
 
 /*
 * TCPC_PHY_RECEIVE_DETECT register bits *
 */
-#define TCPC_PHY_RECEIVE_DETECT_XXX_MASK                                                                       0x00000080
-#define TCPC_PHY_RECEIVE_DETECT_XXX_SHIFT                                                                      7
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_CABLE_RESET_MASK                                                        0x00000040
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_CABLE_RESET_SHIFT                                                       6
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_HARD_RESET_MASK                                                         0x00000020
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_HARD_RESET_SHIFT                                                        5
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_DBG_2_MESSAGE_MASK                                                  0x00000010
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_DBG_2_MESSAGE_SHIFT                                                 4
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_DBG_1_MESSAGE_MASK                                                  0x00000008
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_DBG_1_MESSAGE_SHIFT                                                 3
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_2_MESSAGE_MASK                                                      0x00000004
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_2_MESSAGE_SHIFT                                                     2
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_1_MESSAGE_MASK                                                      0x00000002
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_1_MESSAGE_SHIFT                                                     1
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_MESSAGE_MASK                                                        0x00000001
+#define TCPC_PHY_RECEIVE_DETECT_ENABLE_SOP_MESSAGE_SHIFT                                                       0
 
 /*
 * TCPC_PHY_READABLE_BYTE_COUNT register bits *
@@ -578,8 +594,10 @@
 /*
 * TCPC_PHY_TRANSMIT register bits *
 */
-#define TCPC_PHY_TRANSMIT_XXX_MASK                                                                             0x00000080
-#define TCPC_PHY_TRANSMIT_XXX_SHIFT                                                                            7
+#define TCPC_PHY_TRANSMIT_RETRY_COUNTER_MASK                                                                   0x00000030
+#define TCPC_PHY_TRANSMIT_RETRY_COUNTER_SHIFT                                                                  4
+#define TCPC_PHY_TRANSMIT_MESSAGE_MASK                                                                         0x0000000F
+#define TCPC_PHY_TRANSMIT_MESSAGE_SHIFT                                                                        0
 
 /*
 * TCPC_PHY_I2C_WRITE_BYTE_COUNT register bits *
@@ -1003,31 +1021,31 @@ typedef union TCPC_PHY_COMMAND_union_t {
 } TCPC_PHY_COMMAND_t;
 
 /*
-* TCPC_PHY_DEVICE_CAPABILITIES_1 register bits definition *
+* TCPC_PHY_DEV_CAP_1 register bits definition *
 */
-typedef union TCPC_PHY_DEVICE_CAPABILITIES_1_union_t {
+typedef union TCPC_PHY_DEV_CAP_1_union_t {
     UINT16 R;
     struct {
-        UINT16 SOURCE_VBUS                         :  1;  /* Source VBUS */
-        UINT16 SOURCE_HIGH_VOLTAGE_VBUS            :  1;  /* Source High Voltage VBUS */
-        UINT16 SINK_VBUS                           :  1;  /* Sink VBUS */
-        UINT16 SOURCE_VCONN                        :  1;  /* Source VCONN */
-        UINT16 SOP_DBG_SOP_DBG_SUPPORT             :  1;  /* SOP_DBG/SOP_DBG Support */
-        UINT16 POWER_ROLES_SUPPORTED               :  3;  /* Power Roles Supported */
-        UINT16 SOURCE_RESISTOR_SUPPORTED           :  2;  /* Source Resistor Supported */
-        UINT16 VBUS_MEASUREMENT_AND_ALARM_CAPABLE  :  1;  /* VBUS Measurement and Alarm Capable */
-        UINT16 FORCE_DISCHARGE                     :  1;  /* Force Discharge */
-        UINT16 BLEED_DISCHARGE                     :  1;  /* Bleed Discharge */
-        UINT16 VBUS_OVP_REPORTING                  :  1;  /* VBUS OVP Reporting */
-        UINT16 VBUS_OCP_REPORTING                  :  1;  /* VBUS OCP Reporting */
-        UINT16 VBUS_HIGH_VOLTAGE_TARGET            :  1;  /* VBUS High Voltage Target */
+        UINT16 SOURCE_VBUS                  :  1;  /* Source VBUS */
+        UINT16 SOURCE_HIGH_VOLTAGE_VBUS     :  1;  /* Source High Voltage VBUS */
+        UINT16 SINK_VBUS                    :  1;  /* Sink VBUS */
+        UINT16 SOURCE_VCONN                 :  1;  /* Source VCONN */
+        UINT16 SOP_DBG_SOP_DBG_SUPPORT      :  1;  /* SOP_DBG/SOP_DBG Support */
+        UINT16 PWR_ROLES                    :  3;  /* Power Roles Supported */
+        UINT16 SRC_RES                      :  2;  /* Source Resistor Supported */
+        UINT16 VBUS_MEAS_AND_ALARM_CAPABLE  :  1;  /* VBUS Measurement and Alarm Capable */
+        UINT16 FORCE_DISCHARGE              :  1;  /* Force Discharge */
+        UINT16 BLEED_DISCHARGE              :  1;  /* Bleed Discharge */
+        UINT16 VBUS_OVP_REPORTING           :  1;  /* VBUS OVP Reporting */
+        UINT16 VBUS_OCP_REPORTING           :  1;  /* VBUS OCP Reporting */
+        UINT16 VBUS_HIGH_VOLTAGE_TARGET     :  1;  /* VBUS High Voltage Target */
     } B;
-} TCPC_PHY_DEVICE_CAPABILITIES_1_t;
+} TCPC_PHY_DEV_CAP_1_t;
 
 /*
-* TCPC_PHY_DEVICE_CAPABILITIES_2 register bits definition *
+* TCPC_PHY_DEV_CAP_2 register bits definition *
 */
-typedef union TCPC_PHY_DEVICE_CAPABILITIES_2_union_t {
+typedef union TCPC_PHY_DEV_CAP_2_union_t {
     UINT16 R;
     struct {
         UINT16 VCONN_OVERCURRENT_FAULT_CAPABLE  :  1;  /* VCONN Overcurrent Fault Capable */
@@ -1043,12 +1061,12 @@ typedef union TCPC_PHY_DEVICE_CAPABILITIES_2_union_t {
         UINT16 GENERIC_TIMER                    :  1;  /* Generic Timer */
         UINT16 Reserved_14                      :  2;  /* Reserved */
     } B;
-} TCPC_PHY_DEVICE_CAPABILITIES_2_t;
+} TCPC_PHY_DEV_CAP_2_t;
 
 /*
-* TCPC_PHY_STANDARD_INPUT_CAPABILITIES register bits definition *
+* TCPC_PHY_STD_INPUT_CAP register bits definition *
 */
-typedef union TCPC_PHY_STANDARD_INPUT_CAPABILITIES_union_t {
+typedef union TCPC_PHY_STD_INPUT_CAP_union_t {
     UINT8 R;
     struct {
         UINT8 FORCE_OFF_VBUS                    :  1;  /* Force Off VBUS */
@@ -1057,12 +1075,12 @@ typedef union TCPC_PHY_STANDARD_INPUT_CAPABILITIES_union_t {
         UINT8 SOURCE_FAST_ROLE_SWAP             :  2;  /* Source Fast Role Swap */
         UINT8 Reserved_5                        :  3;  /* Reserved */
     } B;
-} TCPC_PHY_STANDARD_INPUT_CAPABILITIES_t;
+} TCPC_PHY_STD_INPUT_CAP_t;
 
 /*
-* TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES register bits definition *
+* TCPC_PHY_STD_OUTPUT_CAP register bits definition *
 */
-typedef union TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_union_t {
+typedef union TCPC_PHY_STD_OUTPUT_CAP_union_t {
     UINT8 R;
     struct {
         UINT8 CONNECTOR_ORIENTATION                  :  1;  /* Connector Orientation */
@@ -1074,19 +1092,19 @@ typedef union TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_union_t {
         UINT8 DEBUG_ACCESSORY_INDICATOR              :  1;  /* Debug Accessory Indicator */
         UINT8 VBUS_SINK_DISCONNECT_DETECT_INDICATOR  :  1;  /* VBUS Sink Disconnect Detect Indicator */
     } B;
-} TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_t;
+} TCPC_PHY_STD_OUTPUT_CAP_t;
 
 /*
-* TCPC_PHY_CONFIG_EXTENDED1 register bits definition *
+* TCPC_PHY_CFG_EXT_1 register bits definition *
 */
-typedef union TCPC_PHY_CONFIG_EXTENDED1_union_t {
+typedef union TCPC_PHY_CFG_EXT_1_union_t {
     UINT8 R;
     struct {
         UINT8 Reserved_5                     :  6;  /* Reserved */
         UINT8 STANDARD_INPUT_SOURCE_FR_SWAP  :  1;  /* Standard Input Source FR Swap */
         UINT8 FR_SWAP_BIDIRECTIONAL_PIN      :  1;  /* FR Swap Bidirectional Pin */
     } B;
-} TCPC_PHY_CONFIG_EXTENDED1_t;
+} TCPC_PHY_CFG_EXT_1_t;
 
 /*
 * TCPC_PHY_GENERIC_TIMER register bits definition *
@@ -1101,8 +1119,11 @@ typedef union TCPC_PHY_GENERIC_TIMER_union_t {
 typedef union TCPC_PHY_MESSAGE_HEADER_INFO_union_t {
     UINT8 R;
     struct {
-        UINT8 Reserved_6  :  7;  /* Reserved */
-        UINT8 XXX         :  1;  /* x */
+        UINT8 POWER_ROLE       :  1;  /* Power Role */
+        UINT8 USB_PD_SPEC_REV  :  2;  /* USB PD Specification Revision */
+        UINT8 DATA_ROLE        :  1;  /* Data Role */
+        UINT8 CABLE_PLUG       :  1;  /* Message originatation */
+        UINT8 Reserved_5       :  3;  /* Reserved */
     } B;
 } TCPC_PHY_MESSAGE_HEADER_INFO_t;
 
@@ -1112,8 +1133,14 @@ typedef union TCPC_PHY_MESSAGE_HEADER_INFO_union_t {
 typedef union TCPC_PHY_RECEIVE_DETECT_union_t {
     UINT8 R;
     struct {
-        UINT8 Reserved_6  :  7;  /* Reserved */
-        UINT8 XXX         :  1;  /* x */
+        UINT8 ENABLE_SOP_MESSAGE        :  1;  /* Enable SOP message */
+        UINT8 ENABLE_SOP_1_MESSAGE      :  1;  /* Enable SOP’ message */
+        UINT8 ENABLE_SOP_2_MESSAGE      :  1;  /* Enable SOP’’ message */
+        UINT8 ENABLE_SOP_DBG_1_MESSAGE  :  1;  /* Enable SOP_DBG’ message */
+        UINT8 ENABLE_SOP_DBG_2_MESSAGE  :  1;  /* Enable SOP_DBG’’ message */
+        UINT8 ENABLE_HARD_RESET         :  1;  /* Enable Hard Reset */
+        UINT8 ENABLE_CABLE_RESET        :  1;  /* Enable Cable Reset */
+        UINT8 Reserved_7                :  1;  /* Reserved */
     } B;
 } TCPC_PHY_RECEIVE_DETECT_t;
 
@@ -1156,8 +1183,9 @@ typedef union TCPC_PHY_RX_BUF_BYTE_X_union_t {
 typedef union TCPC_PHY_TRANSMIT_union_t {
     UINT8 R;
     struct {
-        UINT8 Reserved_6  :  7;  /* Reserved */
-        UINT8 XXX         :  1;  /* x */
+        UINT8 MESSAGE        :  4;  /* Retry Counter */
+        UINT8 RETRY_COUNTER  :  2;  /* Retry Counter */
+        UINT8 Reserved_6     :  2;  /* Reserved */
     } B;
 } TCPC_PHY_TRANSMIT_t;
 
@@ -1431,11 +1459,11 @@ typedef struct TCPC_PHY_struct_t {
     TCPC_PHY_ALERT_EXTENDED_t                    ALERT_EXTENDED;                           /* 0x00000021 ALERT_EXTENDED Register */
     UINT8                                        Reserved_34[1];                           /* 0x00000022 Reserved */
     TCPC_PHY_COMMAND_t                           COMMAND;                                  /* 0x00000023 COMMAND Register */
-    TCPC_PHY_DEVICE_CAPABILITIES_1_t             DEVICE_CAPABILITIES_1;                    /* 0x00000024 DEVICE_CAPABILITIES_1 Register */
-    TCPC_PHY_DEVICE_CAPABILITIES_2_t             DEVICE_CAPABILITIES_2;                    /* 0x00000026 DEVICE_CAPABILITIES_2 Register */
-    TCPC_PHY_STANDARD_INPUT_CAPABILITIES_t       STANDARD_INPUT_CAPABILITIES;              /* 0x00000028 STANDARD_INPUT_CAPABILITIES Register */
-    TCPC_PHY_STANDARD_OUTPUT_CAPABILITIES_t      STANDARD_OUTPUT_CAPABILITIES;             /* 0x00000029 STANDARD_OUTPUT_CAPABILITIES Register */
-    TCPC_PHY_CONFIG_EXTENDED1_t                  CONFIG_EXTENDED1;                         /* 0x0000002A CONFIG_EXTENDED1 Register */
+    TCPC_PHY_DEV_CAP_1_t                         DEV_CAP_1;                                /* 0x00000024 DEVICE_CAPABILITIES_1 Register */
+    TCPC_PHY_DEV_CAP_2_t                         DEV_CAP_2;                                /* 0x00000026 DEVICE_CAPABILITIES_2 Register */
+    TCPC_PHY_STD_INPUT_CAP_t                     STD_INPUT_CAP;                            /* 0x00000028 STANDARD_INPUT_CAPABILITIES Register */
+    TCPC_PHY_STD_OUTPUT_CAP_t                    STD_OUTPUT_CAP;                           /* 0x00000029 STANDARD_OUTPUT_CAPABILITIES Register */
+    TCPC_PHY_CFG_EXT_1_t                         CFG_EXT_1;                                /* 0x0000002A CONFIG_EXTENDED1 Register */
     UINT8                                        Reserved_43[1];                           /* 0x0000002B Reserved */
     TCPC_PHY_GENERIC_TIMER_t                     GENERIC_TIMER;                            /* 0x0000002C GENERIC_TIMER Register */
     TCPC_PHY_MESSAGE_HEADER_INFO_t               MESSAGE_HEADER_INFO;                      /* 0x0000002E MESSAGE_HEADER_INFO Register */

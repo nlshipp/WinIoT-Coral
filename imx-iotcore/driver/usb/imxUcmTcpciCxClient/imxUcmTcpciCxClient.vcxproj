@@ -11,21 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="imx_tcpci_alert.cpp" />
     <ClCompile Include="imx_tcpci_i2c.cpp" />
-    <ClCompile Include="imx_tcpci_device.cpp" />
-    <ClCompile Include="imx_tcpci_driver.cpp" />
-    <ClCompile Include="imx_tcpci_dbg.cpp" />
-    <ClCompile Include="imx_tcpci_Ioctl.cpp" />
+    <ClCompile Include="imx_tcpci.cpp" />
+    <ClCompile Include="imx_tcpci_trace.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="imx_tcpci_alert.h" />
     <ClInclude Include="imx_tcpci_phy_io_map.h" />
     <ClInclude Include="imx_tcpci_i2c.h" />
-    <ClInclude Include="imx_tcpci_device.h" />
-    <ClInclude Include="imx_tcpci_driver.h" />
-    <ClInclude Include="imx_tcpci_dbg.h" />
-    <ClInclude Include="imx_tcpci_ioctl.h" />
+    <ClInclude Include="imx_tcpci.h" />
+    <ClInclude Include="imx_tcpci_trace.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -52,6 +46,9 @@
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <UcmTcpciDriver>true</UcmTcpciDriver>
+    <UCMTCPCI_VERSION_MAJOR>1</UCMTCPCI_VERSION_MAJOR>
+    <UCMTCPCI_VERSION_MINOR>0</UCMTCPCI_VERSION_MINOR>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -83,15 +80,17 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <WppEnabled>false</WppEnabled>
-      <WppRecorderEnabled>true</WppRecorderEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppEnabled>true</WppEnabled>
+      <WppRecorderEnabled>false</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">imx_tcpci_trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
       <AdditionalIncludeDirectories>$(DDK_INC_PATH)\UcmTcpci\1.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppAdditionalOptions>-scan:"$(DDK_INC_PATH)\UcmTcpci\1.0\UcmTcpciTraceEnums.h"</WppAdditionalOptions>
       <WppMinimalRebuildFromTracking Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</WppMinimalRebuildFromTracking>
       <WppMinimalRebuildFromTracking Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</WppMinimalRebuildFromTracking>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">_ARM64_;ARM64;_USE_DECLSPECS_FOR_SAL=1;STD_CALL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">false</PreprocessToFile>
+      <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\UcmTcpci\1.0\UcmTcpciCxStub.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -102,12 +101,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
-  </ItemGroup>
-  <ItemGroup>
-    <PkgGen Include="imxUcmTcpciCxClient.wm.xml">
-      <AdditionalOptions>/universalbsp</AdditionalOptions>
-      <SubType>Designer</SubType>
-    </PkgGen>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
