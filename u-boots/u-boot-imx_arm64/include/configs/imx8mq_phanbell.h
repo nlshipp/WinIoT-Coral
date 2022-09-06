@@ -237,7 +237,7 @@
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
-#define CONFIG_FSL_QSPI    /* enable the QUADSPI driver */
+#undef CONFIG_FSL_QSPI    /* disable the QUADSPI driver, not present on Phanbell */
 #ifdef CONFIG_FSL_QSPI
 #define CONFIG_CMD_SF
 #define	CONFIG_SPI_FLASH
