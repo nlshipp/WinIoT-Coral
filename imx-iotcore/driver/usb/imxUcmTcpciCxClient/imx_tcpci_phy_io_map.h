@@ -32,7 +32,157 @@
 #ifndef _TCPC_PHY_IO_MAP_H_
 #define _TCPC_PHY_IO_MAP_H_
 
-/* TCPC_PHY registers, offset from base address */
+#define PTN5150
+
+#ifdef PTN5150
+
+/* TCPC_PHY registers, offset from base address PTN5150 */
+#define TCPC_PHY_VERSION_VENDOR_ID               0x01
+#define TCPC_PHY_CONTROL                         0x02
+#define TCPC_PHY_CABLE_INT_STATUS                0x03
+#define TCPC_PHY_CC_STATUS                       0x04
+#define TCPC_PHY_CON_DET_CONFIG                  0x09
+#define TCPC_PHY_VCONN_STATUS                    0x0A
+#define TCPC_PHY_RESET                           0x10
+#define TCPC_PHY_INT_MASK                        0x18
+#define TCPC_PHY_INT_STATUS                      0x19
+
+/*
+* TCPC_PHY_VERSION_VENDOR_ID register bits definition read-only *
+*/
+typedef union TCPC_PHY_VERSION_VENDOR_ID_union_t {
+    UINT8 R;
+    struct {
+        UINT8 VENDOR               : 3;  /* Vendor ID (NXP = 3) */
+        UINT8 VERSION              : 5;  /* Device version ID (1) */
+    } B;
+} TCPC_PHY_VERSION_VENDOR_ID_t;
+
+/*
+* TCPC_PHY_CONTROL_ID register bits definition read/write *
+*/
+typedef union TCPC_PHY_CONTROL_union_t {
+    UINT8 R;
+    struct {
+        UINT8 CABLE_INT_MASK      : 1;  /* detached/attached interrupt mask */
+        UINT8 MODE_SELECT         : 2;  /* 00: device (UFP) 01: host (DFP) 10: dual role (DRP) */
+        UINT8 RP_SELECTION        : 2;  /* 00: 80 uA 01: 180 uA, 10, 330 uA */
+        UINT8 RESERVED            : 3;  /* reserved */
+    } B;
+} TCPC_PHY_CONTROL_t;
+
+/*
+* TCPC_PHY_CABLE_INT_STATUS register bits definition read-only/clear on read *
+*/
+typedef union TCPC_PHY_CABLE_INT_STATUS_union_t {
+    UINT8 R;
+    struct {
+        UINT8 CABLE_ATTACH_INT    : 1;  /* 0: no interrupt, 1: cable attached */
+        UINT8 CABLE_DETACH_INT    : 1;  /* 0: no interrupt, 1: cable detached */
+        UINT8 RESERVED            : 6;  /* reserved */
+    } B;
+} TCPC_PHY_CABLE_INT_STATUS_t;
+
+/*
+* TCPC_PHY_CC_STATUS register bits definition read-only*
+*/
+typedef union TCPC_PHY_CC_STATUS_union_t {
+    UINT8 R;
+    struct {
+        UINT8 CC_POLARITY        : 2;  /* 00: no cable, 01 CC1 normal orientation, 10 CC2 reversed, 11 reserved */
+        UINT8 PORT_ATTACH_STATUS : 3;  /* 000: NC, 001 DFP, 010 UFP, 011 Analog audio, 100 debug, 1xx reserved */
+        UINT8 RP_DETECT          : 2;  /* 00: standby, 01: Rp = Std USB, 10: Rp = 1.5A, 11 Rp = 3.0A */
+        UINT8 VBUS_DETECT        : 1;  /* 0: NC, 1: VBUS detected */
+    } B;
+} TCPC_PHY_CC_STATUS_t;
+
+/*
+* TCPC_PHY_CON_DET_CONFIG register bits definition read/write *
+*/
+typedef union TCPC_PHY_CON_DET_CONFIG_union_t {
+    UINT8 R;
+    struct {
+        UINT8 CON_DET            : 1;  /* 0: Enable CON_DET on pin 5, 1: Disable CON_DET on pin 5 */
+        UINT8 RESERVED           : 7;  /* reserved */
+    } B;
+} TCPC_PHY_CON_DET_CONFIG_t;
+
+/*
+* TCPC_PHY_VCONN_STATUS register bits definition read-only *
+*/
+typedef union TCPC_PHY_VCONN_STATUS_union_t {
+    UINT8 R;
+    struct {
+        UINT8 VCONN_DET          : 2;  /* 00: standby, 01: VCONN on CC1, 10: VCONN on CC2, 11: reserved */
+        UINT8 RESERVED           : 6;  /* reserved */
+    } B;
+} TCPC_PHY_VCONN_STATUS_t ;
+
+/*
+* TCPC_PHY_RESET register bits definition read-write *
+*/
+typedef union TCPC_PHY_RESET_union_t {
+    UINT8 R;
+    struct {
+        UINT8 RESET              : 1;  /* 1: rset system digital block */
+        UINT8 RESERVED           : 7;  /* reserved */
+    } B;
+} TCPC_PHY_RESET_t;
+
+/*
+* TCPC_PHY_INT_MASK register bits definition read/write *
+*/
+typedef union TCPC_PHY_INT_MASK_union_t {
+    UINT8 R;
+    struct {
+        UINT8 AUDIO_ACC_FOUND    : 1;  /* 0: do not mask, 1: mask interrupt */
+        UINT8 DEBUG_ACC_FOUND    : 1;  /* 0: do not mask, 1: mask interrupt */
+        UINT8 ORIENTATION_FOUND  : 1;  /* 0: do not mask, 1: mask interrupt */
+        UINT8 ROLE_CHANGE        : 1;  /* 0: do not mask, 1: mask interrupt */
+        UINT8 CC1_CC2_COMPARITOR : 1;  /* 0: do not mask, 1: mask interrupt */
+        UINT8 RESERVED           : 3;  /* reserved */
+    } B;
+} TCPC_PHY_INT_MASK_t;
+
+/*
+* TCPC_PHY_INT_STATUS register bits definition read-only *
+*/
+typedef union TCPC_PHY_INT_STATUS_union_t {
+    UINT8 R;
+    struct {
+        UINT8 AUDIO_ACC_FOUND    : 1;  /* 1: audio accessory attachment detected */
+        UINT8 DEBUG_ACC_FOUND    : 1;  /* 1: debug accessory attachment detected */
+        UINT8 ORIENTATION_FOUND  : 1;  /* 1: orientation detected on attachment */
+        UINT8 ROLE_CHANGE        : 1;  /* 1: role change detected */
+        UINT8 CC1_CC2_COMPARITOR : 1;  /* 1: When attached as UFP, Rp current advertisement detected */
+        UINT8 RESERVED           : 3;  /* reserved */
+    } B;
+} TCPC_PHY_INT_STATUS_t;
+
+/*
+* TCPC_PHY_t register map *
+*/
+typedef struct TCPC_PHY_struct_t {
+    UINT8                                        Reserved_00;                              /* 0x00 */
+    TCPC_PHY_VERSION_VENDOR_ID_t                 VERSION_VENDOR_ID;                        /* 0x01 */
+    TCPC_PHY_CONTROL_t                           CONTROL;                                  /* 0x02 */
+    TCPC_PHY_CABLE_INT_STATUS_t                  CABLE_INT_STATUS;                         /* 0x03 */
+    TCPC_PHY_CC_STATUS_t                         CC_STATUS;                                /* 0x04 */
+    UINT8                                        Reserved_05_08[4];                        /* 0x05 - 0x08 */
+    TCPC_PHY_CON_DET_CONFIG_t                    CON_DET_CONFIG;                           /* 0x09 */
+    TCPC_PHY_VCONN_STATUS_t                      VCONN_STATUS;                             /* 0x0A */
+    UINT8                                        Reserved_11_15[5];                        /* 0x0B - 0x0F */
+    TCPC_PHY_RESET_t                             RESET;                                    /* 0x10 */
+    UINT8                                        Reserved_17_23[7];                        /* 0x11 - 0x17 */
+    TCPC_PHY_INT_MASK_t                          INT_MASK;                                 /* 0x18 */
+    TCPC_PHY_INT_STATUS_t                        INT_STATUS;                               /* 0x19 */
+} TCPC_PHY_t;
+
+#endif
+
+#ifdef PTN5110
+
+/* TCPC_PHY registers, offset from base address PTN5110 */
 #define TCPC_PHY_VENDOR_ID                       0x0000  /* VENDOR_ID Register offset */
 #define TCPC_PHY_PRODUCT_ID                      0x0002  /* PRODUCT_ID Register offset */
 #define TCPC_PHY_DEVICE_ID                       0x0004  /* DEVICE_ID Register offset */
@@ -1509,5 +1659,5 @@ typedef struct TCPC_PHY_struct_t {
     TCPC_PHY_VCON_FAULT_RECOVERY_t               VCON_FAULT_RECOVERY;                      /* 0x0000009E VCON_FAULT_RECOVERY Register */
     TCPC_PHY_VCON_FAULT_ATTEMPTS_t               VCON_FAULT_ATTEMPTS;                      /* 0x0000009F VCON_FAULT_ATTEMPTS Register */
 } TCPC_PHY_t;
-
+#endif /* PTN5110 */
 #endif /* _TCPC_PHY_IO_MAP_H_ */

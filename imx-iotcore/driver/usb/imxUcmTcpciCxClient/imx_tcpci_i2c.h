@@ -125,7 +125,7 @@ EXTERN_C_START
 NTSTATUS IO_Initialize            (_In_ PDEV_CONTEXT pDevContext, _In_ WDFCMRESLIST hResourcesRaw, _In_ WDFCMRESLIST hResourcesTranslated);
 NTSTATUS GPIO_Open                (_In_ PDEV_CONTEXT pDevContext);
 void     GPIO_Close               (_In_ PDEV_CONTEXT pDevContext);
-NTSTATUS GPIO_PlugOrientation_Set (_In_ PDEV_CONTEXT pDevContext,  _In_ TCPC_PHY_TCPC_CONTROL_t TCPC_CONTROL);
+// NTSTATUS GPIO_PlugOrientation_Set (_In_ PDEV_CONTEXT pDevContext,  _In_ TCPC_PHY_TCPC_CONTROL_t TCPC_CONTROL);
 NTSTATUS I2C_Open                 (_In_ PDEV_CONTEXT pDevContext);
 void     I2C_Close                (_In_ PDEV_CONTEXT pDevContext);
 NTSTATUS I2C_PrepareI2CRequest    (_In_ DEV_CONTEXT *pDevContext, _In_ I2C_IO_CMD_t I2C_Cmd);

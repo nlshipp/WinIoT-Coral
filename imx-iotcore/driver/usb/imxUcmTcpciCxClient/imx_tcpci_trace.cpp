@@ -57,7 +57,7 @@ void        TCPC_PHY_DumpTxBuffer(_In_reads_bytes_(Length) UCMTCPCI_PORT_CONTROL
 #undef MAKEDEFAULT
 #define MAKECASE(Value) case Value:  return #Value;
 #define MAKECASE1(Value,Name) case Value:  return #Name;
-#define MAKEDEFAULT(Message) default: return"!!! "Message" name unknown !!!";
+#define MAKEDEFAULT(Message) default: return "!!! "Message" name unknown !!!";
 
 const char* Dbg_GetIOCTLName(ULONG i) {
     switch (i) {
@@ -78,7 +78,247 @@ const char* Dbg_GetIOCTLName(ULONG i) {
         MAKEDEFAULT("Unknown IOCTL")
     }
 }
+#ifdef PTN5150
+const char* Dbg_GetRegName(UINT32 i) {
+    switch (i) {
+        MAKECASE(TCPC_PHY_VERSION_VENDOR_ID)
+        MAKECASE(TCPC_PHY_CONTROL)
+        MAKECASE(TCPC_PHY_CABLE_INT_STATUS)
+        MAKECASE(TCPC_PHY_CC_STATUS)
+        MAKECASE(TCPC_PHY_CON_DET_CONFIG)
+        MAKECASE(TCPC_PHY_VCONN_STATUS)
+        MAKECASE(TCPC_PHY_RESET)
+        MAKECASE(TCPC_PHY_INT_MASK)
+        MAKECASE(TCPC_PHY_INT_STATUS)
+        MAKEDEFAULT("Unknown reg name")
+    }
+}
 
+#define MAXSTRINGLEN 512
+#define AppendStr(_Str_) strncat(Buffer, _Str_, ((sizeof(_Str_) < MAXSTRINGLEN-strlen(Buffer)? sizeof(_Str_) : MAXSTRINGLEN-strlen(Buffer))))
+
+void TCPC_PHY_DumpIntMask(TCPC_PHY_INT_MASK_t INT_MASK, UINT32 params, const char *Caller){
+
+    char  Buffer[512] = "";
+    Buffer[0]=0;
+    if (INT_MASK.B.AUDIO_ACC_FOUND)              AppendStr(" Audio=1");
+    if (INT_MASK.B.DEBUG_ACC_FOUND)              AppendStr(" DebugAccessory=1");
+    if (INT_MASK.B.ORIENTATION_FOUND)            AppendStr(" Orientation=1");
+    if (INT_MASK.B.ROLE_CHANGE)                  AppendStr(" RoleChange=1");
+    if (INT_MASK.B.CC1_CC2_COMPARITOR)           AppendStr(" CC1CC2Comparitor=1");
+
+    DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (%s )", Caller, params?"Wr":"Rd", "INT_MASK", TCPC_PHY_INT_MASK, INT_MASK.R, Buffer);
+}
+
+void TCPC_PHY_DumpIntStatus(TCPC_PHY_INT_STATUS_t INT_STATUS, UINT32 params, const char *Caller){
+
+    char  Buffer[512] = "";
+    Buffer[0]=0;
+    if (INT_STATUS.B.AUDIO_ACC_FOUND)              AppendStr(" Audio=1");
+    if (INT_STATUS.B.DEBUG_ACC_FOUND)              AppendStr(" DebugAccessory=1");
+    if (INT_STATUS.B.ORIENTATION_FOUND)            AppendStr(" Orientation=1");
+    if (INT_STATUS.B.ROLE_CHANGE)                  AppendStr(" RoleChange=1");
+    if (INT_STATUS.B.CC1_CC2_COMPARITOR)           AppendStr(" CC1CC2Comparitor=1");
+
+    DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (%s )", Caller, params?"Wr":"Rd", "INT_STATUS", TCPC_PHY_INT_STATUS, INT_STATUS.R, Buffer);
+}
+
+void TCPC_PHY_DumpCableIntStatus(TCPC_PHY_CABLE_INT_STATUS_t INT_STATUS, UINT32 params, const char *Caller){
+
+    char  Buffer[512] = "";
+    Buffer[0]=0;
+    if (INT_STATUS.B.CABLE_ATTACH_INT)             AppendStr(" CableAttach=1");
+    if (INT_STATUS.B.CABLE_DETACH_INT)             AppendStr(" CableDetach=1");
+
+    DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (%s )", Caller, params?"Wr":"Rd", "CABLE_INT_STATUS", TCPC_PHY_INT_STATUS, INT_STATUS.R, Buffer);
+}
+
+void TCPC_PHY_DumpCCStatus(TCPC_PHY_CC_STATUS_t CC_STATUS, UINT32 params, const char *Caller){
+
+    char  Buffer[512] = "";
+    Buffer[0]=0;
+    switch (CC_STATUS.B.CC_POLARITY)
+    {
+    case 00:
+        AppendStr(" polarity=nc");
+        break;
+    case 01:
+        AppendStr(" polarity=CC1");
+        break;
+    case 02:
+        AppendStr(" polarity=CC2(rev)");
+        break;
+    case 03:
+        AppendStr(" polarity=reserved");
+        break;
+    }
+    switch (CC_STATUS.B.PORT_ATTACH_STATUS)
+    {
+    case 00:
+        AppendStr(" PortAttach=nc");
+        break;
+    case 01:
+        AppendStr(" PortAttach=DFP(host)");
+        break;
+    case 02:
+        AppendStr(" PortAttach=UFP(device)");
+        break;
+    case 03:
+        AppendStr(" PortAttach=AnalogAudio");
+        break;
+    case 04:
+        AppendStr(" PortAttach=debug");
+        break;
+    default:
+        AppendStr(" PortAttach=reserved");
+        break;
+    }
+    switch (CC_STATUS.B.RP_DETECT)
+    {
+    case 00:
+        AppendStr(" Rp=standby");
+        break;
+    case 01:
+        AppendStr(" Rp=std USB");
+        break;
+    case 02:
+        AppendStr(" Rp=1.5A");
+        break;
+    case 03:
+        AppendStr(" Rp=3A");
+        break;
+    }
+    switch (CC_STATUS.B.VBUS_DETECT)
+    {
+    case 0:
+        AppendStr(" VBus=nc");
+        break;
+    case 1:
+        AppendStr(" VBus=detected");
+        break;
+    }
+
+    DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (%s )", Caller, params?"Wr":"Rd", "CC_STATUS", TCPC_PHY_CC_STATUS, CC_STATUS.R, Buffer);
+}
+
+void TCPC_PHY_DumpControl(TCPC_PHY_CONTROL_t CONTROL, UINT32 params, const char *Caller){
+
+    char  Buffer[512] = "";
+    Buffer[0]=0;
+//    UINT8 CABLE_INT_MASK;  /* detached/attached interrupt mask */
+//    UINT8 MODE_SELECT;  /* 00: device (UFP) 01: host (DFP) 10: dual role (DRP) */
+//    UINT8 RP_SELECTION;  /* 00: 80 uA 01: 180 uA, 10, 330 uA */
+    switch (CONTROL.B.CABLE_INT_MASK)
+    {
+    case 0:
+        AppendStr(" CableAttachMask=0");
+        break;
+    case 1:
+        AppendStr(" CableAttachMask=1");
+        break;
+    }
+    switch (CONTROL.B.MODE_SELECT)
+    {
+    case 00:
+        AppendStr(" mode=UFP(device)");
+        break;
+    case 01:
+        AppendStr(" mode=DFP(host)");
+        break;
+    case 02:
+        AppendStr(" mode=DRP(dual role)");
+        break;
+    default:
+        AppendStr(" mode=reserved");
+        break;
+    }
+    switch (CONTROL.B.RP_SELECTION)
+    {
+    case 00:
+        AppendStr(" Rp=80uA (USB std)");
+        break;
+    case 01:
+        AppendStr(" Rp=180uA (1.5A)");
+        break;
+    case 02:
+        AppendStr(" Rp=330uA (3A)");
+        break;
+    case 03:
+        AppendStr(" Rp=reserved");
+        break;
+    }
+
+    DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (%s )", Caller, params?"Wr":"Rd", "CONTROL", TCPC_PHY_CONTROL, CONTROL.R, Buffer);
+}
+
+void TCPC_PHY_DumpReg(const char *CallerName, TCPC_PHY_t *pRegs, UINT32 RegAddress, UINT32 params, ULONG Length) {
+
+//    char *pStr;
+//    DEV_CONTEXT *pDevContext = (DEV_CONTEXT*)((char*)pRegs-offsetof(DEV_CONTEXT,TCPI_PhyRegs));
+    switch (RegAddress) {
+        case TCPC_PHY_VERSION_VENDOR_ID:
+            DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (Vendor: %s) (Version: %s)", CallerName, params?"Wr":"Rd", "VERSION_VENDOR_ID", TCPC_PHY_VERSION_VENDOR_ID, pRegs->VERSION_VENDOR_ID.R,
+                 (pRegs->VERSION_VENDOR_ID.B.VENDOR == 3)? "NXP":"Unknown",
+                 (pRegs->VERSION_VENDOR_ID.B.VERSION == 1)? "PTN5150A":"Unknown");
+                break;           
+        case TCPC_PHY_CONTROL:
+            TCPC_PHY_DumpControl(pRegs->CONTROL, params, CallerName);
+            break;           
+        case TCPC_PHY_CABLE_INT_STATUS:
+            TCPC_PHY_DumpCableIntStatus(pRegs->CABLE_INT_STATUS, params, CallerName);
+            break;           
+        case TCPC_PHY_CC_STATUS:
+            TCPC_PHY_DumpCCStatus(pRegs->CC_STATUS, params, CallerName);
+            break;           
+        case TCPC_PHY_CON_DET_CONFIG:
+            DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value:   0x%02X (CON_DET_ENABLED=%d)", CallerName, params?"Wr":"Rd", "CON_DET_CONFIG", TCPC_PHY_CON_DET_CONFIG, pRegs->CON_DET_CONFIG.R,
+                pRegs->CON_DET_CONFIG.B.CON_DET
+            );
+            break;           
+        case TCPC_PHY_VCONN_STATUS:
+//            TCPC_PHY_DumpVConnStatus(pRegs->VCONN_STATUS, params, CallerName);
+            break;           
+        case TCPC_PHY_RESET:
+            DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%02X (reset=%d)", CallerName, params?"Wr":"Rd", "RESET", TCPC_PHY_RESET, pRegs->RESET.R,
+                pRegs->RESET.B.RESET);
+            break;
+        case TCPC_PHY_INT_MASK:
+            TCPC_PHY_DumpIntMask(pRegs->INT_MASK, params, CallerName);
+            break;           
+        case TCPC_PHY_INT_STATUS:
+            TCPC_PHY_DumpIntStatus(pRegs->INT_STATUS, params, CallerName);
+            break;           
+        default:
+            if (Length == 1) {
+                DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value:   0x%02X", CallerName, params?"Wr":"Rd", Dbg_GetRegName(RegAddress), RegAddress, *(UINT8*)&(((UINT8*)pRegs)[RegAddress]));
+            } else if (Length == 2) {
+                DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: 0x%04X", CallerName, params?"Wr":"Rd", Dbg_GetRegName(RegAddress), RegAddress, *(UINT16*)&(((UINT8*)pRegs)[RegAddress]));
+            } else {
+                DBG_TCPCI_REG_DUMP("%-30s Reg%s: %-39s(0x%02X), Value: XXX,, Length: %d", CallerName, params?"Wr":"Rd", Dbg_GetRegName(RegAddress), RegAddress, Length);
+            }
+            break;
+    }
+}
+
+#define  GET_REGISTER(RegName) {TCPC_PHY_##RegName, (PVOID)&pDevContext->TCPI_PhyRegs.##RegName##, sizeof(TCPC_PHY_##RegName##_t)}
+
+void TCPC_PHY_ReadAllRegs(PDEV_CONTEXT pDevContext, char *Caller) {
+    I2C_IO_CMD_t  ReadAllRegs_I2CIOCmd[] = {
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_VERSION_VENDOR_ID)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_CONTROL)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_CABLE_INT_STATUS)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_CC_STATUS)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_CON_DET_CONFIG)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_VCONN_STATUS)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_RESET)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_INT_MASK)},
+        {NULL, IMX_EvtDeviceD0Entry_ReadAllRegs, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_INT_STATUS) | I2C_IO_CMD_LAST_CMD}
+    };
+    I2C_RegsIo(pDevContext, &ReadAllRegs_I2CIOCmd[0]);
+}
+#endif
+
+#ifdef PTN5110
 
 const char* Dbg_GetRegName(UINT32 i) {
     switch (i) {
@@ -795,6 +1035,7 @@ void TCPC_PHY_ReadAllRegs(PDEV_CONTEXT pDevContext, char *Caller) {
     I2C_RegsIo(pDevContext, &ReadAllRegs_I2CIOCmd[0]);
 }
 
+#endif  // PTN5110
 
 typedef struct I2C_IO_SOURCE_DESCRIPTION_s {
     char *FullName;

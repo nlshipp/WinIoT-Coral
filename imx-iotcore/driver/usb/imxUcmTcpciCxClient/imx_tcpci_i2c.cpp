@@ -264,6 +264,7 @@ Arguments:
 Return Value:
     NTSTATUS
 --*/
+#if 0
 NTSTATUS GPIO_PlugOrientation_Set(_In_ PDEV_CONTEXT pDevContext, TCPC_PHY_TCPC_CONTROL_t TCPC_CONTROL) {
     NTSTATUS  ntStatus = STATUS_SUCCESS;
 
@@ -289,7 +290,7 @@ NTSTATUS GPIO_PlugOrientation_Set(_In_ PDEV_CONTEXT pDevContext, TCPC_PHY_TCPC_C
     DBG_I2C_METHOD_END_WITH_STATUS(ntStatus);
     return ntStatus;
 }
-
+#endif
 /*++
 Routine Description:
     EvtIoDeviceControl() IOCTL completition routine.
@@ -358,25 +359,25 @@ void UpdateRegsAndBuffer(_In_ DEV_CONTEXT *pDevContext, _In_ NTSTATUS  ntStatus)
         TCPC_PHY_DumpReg(Dbg_GetI2CIOSrcName(I2C_Cmd.IOSrcIdx), &pDevContext->TCPI_PhyRegs, I2C_Cmd.Cmd.RegAddress, !I2C_Cmd.Cmd.Read, DataSize);
     }
     if (I2C_Cmd.Cmd.LastCmd) {                                             /* If this I2C I/O command is the last I2C I/O command in the I2C I/O sequence, */                               
-        if (I2C_Cmd.Cmd.Ioctl) {                                           /* and this sequece is for a IOCTL request,                                     */
+        if (I2C_Cmd.Cmd.Ioctl) {                                           /* and this sequence is for a IOCTL request,                                     */
             IOCTL_CompleteRequest(pDevContext, I2C_Cmd, ntStatus);         /* Complete this IOCTL request.                                                 */
         } 
     } else {                                                               /* If this I2C I/O command is not the last I2C command in the I2C I/O sequence, */
-        pDevContext->I2C_pCurrentCmd++;                                    /* update the pointer to poit to the new I2C I/O command                        */
+        pDevContext->I2C_pCurrentCmd++;                                    /* update the pointer to point to the new I2C I/O command                        */
         I2C_PrepareI2CRequest(pDevContext, *pDevContext->I2C_pCurrentCmd); /* and start this new command.                                                  */
     }
 }
 
 /*++
 Routine Description:
-    This method is called after assynchronnous I2C IO transfer is done.
+    This method is called after asynchronous I2C IO transfer is done.
 --*/
 VOID I2C_OnI2CRequestCompletion(_In_ WDFREQUEST hRequest, _In_ WDFIOTARGET Target, _In_ PWDF_REQUEST_COMPLETION_PARAMS Params, _In_ WDFCONTEXT Context) {
     UNREFERENCED_PARAMETER(Target);
     UNREFERENCED_PARAMETER(hRequest);
 
     DBG_I2C_METHOD_BEG();
-    DBG_I2C_PRINT_VERBOSE("Asynchronnous I2C IO Request done");
+    DBG_I2C_PRINT_VERBOSE("Asynchronous I2C IO Request done");
     UpdateRegsAndBuffer((PDEV_CONTEXT)Context, Params->IoStatus.Status);
     DBG_I2C_METHOD_END();
 }
@@ -426,18 +427,18 @@ NTSTATUS I2C_PrepareI2CRequest(DEV_CONTEXT *pDevContext, I2C_IO_CMD_t I2C_Cmd) {
             break;
         }    
         if (I2C_Cmd.Cmd.SyncCmd) {
-            DBG_I2C_PRINT_VERBOSE("Starting synchronnous I2C IO Request");
+            DBG_I2C_PRINT_VERBOSE("Starting synchronous I2C IO Request");
             if ((WdfRequestSend(pDevContext->I2C_hRequest, pDevContext->I2C_hTarget, &pDevContext->I2C_ReqSendOptions) == FALSE)) {
                 if (!NT_SUCCESS(ntStatus = WdfRequestGetStatus(pDevContext->I2C_hRequest))) {
                     DBG_PRINT_ERROR_WITH_STATUS(ntStatus, "[WDFREQUEST: 0x%p] WdfRequestSend for I2C failed.", pDevContext->I2C_hRequest);
                     break;
                 }
             }
-            DBG_I2C_PRINT_VERBOSE("Synchronnous I2C IO Request done");
+            DBG_I2C_PRINT_VERBOSE("Synchronous I2C IO Request done");
             UpdateRegsAndBuffer(pDevContext, ntStatus);
         } else {
             WdfRequestSetCompletionRoutine(pDevContext->I2C_hRequest, I2C_OnI2CRequestCompletion, pDevContext);
-            DBG_I2C_PRINT_VERBOSE("Starting asynchronnous I2C IO Request");
+            DBG_I2C_PRINT_VERBOSE("Starting asynchronous I2C IO Request");
             if (WdfRequestSend(pDevContext->I2C_hRequest, pDevContext->I2C_hTarget, NULL) == FALSE) {
                 ntStatus = WdfRequestGetStatus(pDevContext->I2C_hRequest);
                 DBG_PRINT_ERROR_WITH_STATUS(ntStatus, "[WDFREQUEST: 0x%p] WdfRequestSend for Async I2C failed.", pDevContext->I2C_hRequest);
