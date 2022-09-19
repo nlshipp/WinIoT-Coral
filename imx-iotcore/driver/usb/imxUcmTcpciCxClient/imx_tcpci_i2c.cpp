@@ -301,7 +301,6 @@ Arguments:
 --*/
 void IOCTL_CompleteRequest(_In_ DEV_CONTEXT *pDevContext, _In_ I2C_IO_CMD_t I2C_Cmd, _In_ NTSTATUS ntStatus) {
     WDFREQUEST  IOCTL_hRequest = pDevContext->IOCTL_hRequest;
-    LONG        IoctlAndIsrSyncCounter;
 
     ASSERT(IOCTL_hRequest != WDF_NO_HANDLE);
     pDevContext->IOCTL_hRequest = WDF_NO_HANDLE;
@@ -311,11 +310,6 @@ void IOCTL_CompleteRequest(_In_ DEV_CONTEXT *pDevContext, _In_ I2C_IO_CMD_t I2C_
     } else {
         DBG_IOCTL_CMD_DUMP("--- WDFREQUEST: 0x%p, Ioctl:%s, ntStatus: 0x%08X", IOCTL_hRequest, Dbg_GetI2CIOSrcName(I2C_Cmd.IOSrcIdx), ntStatus);
     }
-    if ((IoctlAndIsrSyncCounter=InterlockedDecrement(&pDevContext->IoctlAndIsrSyncCounter)) == 1) {    /* Passive ISR pending? */
-        DBG_IOCTL_CMD_DUMP("IOCTL_DONE: ISR peding Setting event ...");             
-        KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
-    }
-    DBG_IOCTL_CMD_DUMP("IOCTL_DONE: InterlockedDecrement(&InterlockedDecrement->I2C_Lock) = %d", IoctlAndIsrSyncCounter);
     WdfRequestComplete(IOCTL_hRequest, ntStatus);             /*  Complete Io request */
 }
 
@@ -469,7 +463,6 @@ NTSTATUS I2C_IOCTL(DEV_CONTEXT *pDevContext, I2C_IO_CMD_t *pI2C_Cmd) {
     if ((IoctlAndIsrSyncCounter=InterlockedIncrement(&pDevContext->IoctlAndIsrSyncCounter)) == 1) {
         /* No I2C command is pending, start IOCTL I2C IO seequence */
         DBG_IOCTL_CMD_DUMP("I2C_IOCTL: InterlockedIncrement(&pDevContext->I2C_Lock) = %d", IoctlAndIsrSyncCounter);
-        KeClearEvent(&pDevContext->IoctlAndIsrSyncEvent);
         pDevContext->I2C_pCurrentCmd = pI2C_Cmd;
         ntStatus = I2C_PrepareI2CRequest(pDevContext, *pI2C_Cmd);
     } else {

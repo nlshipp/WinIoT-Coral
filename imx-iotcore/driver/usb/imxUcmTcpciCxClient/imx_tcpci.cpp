@@ -94,7 +94,7 @@ NTSTATUS EvtDeviceAdd(_In_ WDFDRIVER hDriver, _Inout_ PWDFDEVICE_INIT pDeviceIni
     UCMTCPCI_DEVICE_CONFIG       Config;
     WDF_PNPPOWER_EVENT_CALLBACKS PnpPowerCallbacks;
     WDF_OBJECT_ATTRIBUTES        Attributes;
-    
+
     DBG_DEV_METHOD_BEG();
     UNREFERENCED_PARAMETER(hDriver);
     PAGED_CODE();
@@ -114,7 +114,7 @@ NTSTATUS EvtDeviceAdd(_In_ WDFDRIVER hDriver, _Inout_ PWDFDEVICE_INIT pDeviceIni
             break;
         }
         pDevContext = DeviceGetContext(hDevice);
-        pDevContext->Device  = hDevice;                                                /* Save the device handle in the context. */        
+        pDevContext->Device  = hDevice;                                                /* Save the device handle in the context. */
         UCMTCPCI_DEVICE_CONFIG_INIT(&Config);
         if (!NT_SUCCESS(ntStatus = UcmTcpciDeviceInitialize(hDevice, &Config))) {      /* Register this device with UcmTcpciCx. */
             DBG_PRINT_ERROR_WITH_STATUS(ntStatus, "[WDFDEVICE: 0x%p] UcmTcpciDeviceInitialize failed", hDevice);
@@ -142,7 +142,7 @@ NTSTATUS EvtPrepareHardware(_In_ WDFDEVICE hDevice, _In_ WDFCMRESLIST hResources
     DBG_DEV_METHOD_BEG();
     PAGED_CODE();
     pDevContext = DeviceGetContext(hDevice);
-    KeInitializeEvent(&pDevContext->IoctlAndIsrSyncEvent, NotificationEvent, FALSE);
+    KeInitializeEvent(&pDevContext->IoctlAndIsrSyncEvent, SynchronizationEvent, TRUE);
     do {
         if (!NT_SUCCESS(ntStatus = IO_Initialize(pDevContext, hResourcesRaw, hResourcesTranslated))) {  /* Initialize the I2C communication channel to read from/write to the hardware. */
             break;
@@ -159,9 +159,9 @@ NTSTATUS EvtPrepareHardware(_In_ WDFDEVICE hDevice, _In_ WDFCMRESLIST hResources
 }
 
 NTSTATUS GetStatusFrom5150(_In_ WDFDEVICE hDevice,
-    _In_ UINT32 idxCaller, 
-    _Out_ PUCMTCPCI_PORT_CONTROLLER_CC_STATUS pCCStatus, 
-    _Out_ PUCMTCPCI_PORT_CONTROLLER_POWER_STATUS pPowerStatus, 
+    _In_ UINT32 idxCaller,
+    _Out_ PUCMTCPCI_PORT_CONTROLLER_CC_STATUS pCCStatus,
+    _Out_ PUCMTCPCI_PORT_CONTROLLER_POWER_STATUS pPowerStatus,
     _Out_ PUCMTCPCI_PORT_CONTROLLER_FAULT_STATUS pFaultStatus)
 {
     I2C_IO_CMD_t I2C_Cmd;
@@ -256,7 +256,7 @@ NTSTATUS EvtDeviceD0Entry(_In_ WDFDEVICE hDevice, _In_ WDF_POWER_DEVICE_STATE Pr
         {&intMask,          IMX_EvtDeviceD0Entry_DevCapabilities, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_INT_MASK) },
         {&control,          IMX_EvtDeviceD0Entry_DevCapabilities, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_CONTROL) },
         {&VendorVersionId,  IMX_EvtDeviceD0Entry_DevCapabilities, I2C_IO_CMD_RD_REG_SYNC(TCPC_PHY_VERSION_VENDOR_ID) | I2C_IO_CMD_LAST_CMD}
-    };       
+    };
     do {
         TCPC_PHY_ReadAllRegs(pDevContext,__FUNCTION__);
         if (!NT_SUCCESS(ntStatus = I2C_RegsIo(pDevContext, DevCapabilities_I2C_IO_Cmds))) {
@@ -322,7 +322,7 @@ NTSTATUS EvtDeviceD0Entry(_In_ WDFDEVICE hDevice, _In_ WDF_POWER_DEVICE_STATE Pr
             break;
         }
         pDevContext = DeviceGetContext(hDevice);                            /* Save the UCMTCPCIPORTCONTROLLER in our device context. */
-        pDevContext->PortController = hPortController;  
+        pDevContext->PortController = hPortController;
         /* Set the hardware request queue for our device. A single I/O Queue is configured for sequential request processing, and a driver context memory allocation is created to hold our structure QUEUE_CONTEXT. */
         WDF_IO_QUEUE_CONFIG_INIT(&QueueConfig, WdfIoQueueDispatchSequential);
         QueueConfig.EvtIoDeviceControl = EvtIoDeviceControl;
@@ -385,7 +385,7 @@ VOID EvtIoStop(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ ULONG Action
         WdfRequestCancelSentRequest(pDevContext->IOCTL_hRequest);
     }
 
-    // reset the TCPC PHY 
+    // reset the TCPC PHY
     TCPC_PHY_RESET_t reset;
     reset.R = 0;
     reset.B.RESET = 1;
@@ -411,11 +411,11 @@ NTSTATUS EvtReleaseHardware(_In_ WDFDEVICE hDevice, _In_ WDFCMRESLIST hResources
     UNREFERENCED_PARAMETER(hResourcesTranslated);
     PAGED_CODE();
     pDevContext = DeviceGetContext(hDevice);
-    if (pDevContext->PortController != WDF_NO_HANDLE)  {        
+    if (pDevContext->PortController != WDF_NO_HANDLE)  {
         UcmTcpciPortControllerStop(pDevContext->PortController);   /* Direct UcmTcpciCx to stop the port controller and then delete the backing object. */
         WdfObjectDelete(pDevContext->PortController);
         pDevContext->PortController = WDF_NO_HANDLE;
-    }    
+    }
     I2C_Close(pDevContext);                                         /* Close the I2C controller. */
     GPIO_Close(pDevContext);                                        /* Close the GPIO controller. */
     DBG_DEV_METHOD_END_WITH_STATUS(ntStatus);
@@ -448,7 +448,6 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
 //    UCMTCPCI_PORT_CONTROLLER_RECEIVE_BUFFER receiveBuffer;
     UCMTCPCI_PORT_CONTROLLER_ALERT_DATA     hardwareAlerts[ISR_MAX_ALERTS_TO_REPORT];  /* UcmTcpciCx expects the information on all of the alerts firing presently. */
     I2C_IO_CMD_t                            I2C_Cmd;
-    LONG                                    IoctlAndIsrSyncCounter;
 
     TCPC_PHY_INT_STATUS_t                   intStatus;
     TCPC_PHY_CABLE_INT_STATUS_t             cableIntStatus;
@@ -458,14 +457,13 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     DBG_IOCTL_METHOD_BEG_WITH_PARAMS("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     /* Process the alerts as long as there are bits set in the alert register. Set a maximum number of alerts to process in this loop. If the hardware is messed up and we're unable */
     /* to quiesce the interrupt by writing to the alert register, then we don't want to be stuck in an infinite loop. */
-    if ((IoctlAndIsrSyncCounter=InterlockedIncrement(&pDevContext->IoctlAndIsrSyncCounter)) != 1) {
-        DBG_IOCTL_CMD_DUMP("ISR: InterlockedIncrement(&pDevContext->I2C_Lock) = %d, waiting for event", IoctlAndIsrSyncCounter);
-        ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
-        KeClearEvent(&pDevContext->IoctlAndIsrSyncEvent);
-        DBG_IOCTL_CMD_DUMP("ISR: waiting for DEVICE LOCK done");
-    } else {
-        DBG_IOCTL_CMD_DUMP("ISR: InterlockedIncrement(&pDevContext->I2C_Lock) = 1");
+    ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
+    if (!NT_SUCCESS(ntStatus))
+    {
+        DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
+        return FALSE;
     }
+
     while (NumAlertReports <= ISR_MAX_ALERTS_TO_PROCESS) {
         // Reading INT_STATUS and CABLE_INT_STATUS clears interrupt flags
         if (!NT_SUCCESS(ntStatus = RdRegSync(TCPC_PHY_INT_STATUS, &(intStatus.R), IMX_ISR))) {
@@ -477,7 +475,7 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
 
         if ((intStatus.R == 0) && (cableIntStatus.R == 0)) {  /* If there are no bits set in the alert register, we should not service this interrupt. */
             break;
-        }      
+        }
         interruptRecognized = TRUE;         /* Since there are bits set in the alert register, we can safely assume that the interrupt is ours to process. */
         NumAlertsInReport = 0;
         do {
@@ -515,10 +513,10 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
                 hardwareAlerts[NumAlertsInReport++] = alertData;
             }
         } while (0);
-        if (NT_SUCCESS(ntStatus)) {  
+        if (NT_SUCCESS(ntStatus)) {
             if (NumAlertsInReport) {
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! ->> UcmTcpciPortControllerAlert +++ !!!!!!!!! ");
-                UcmTcpciPortControllerAlert(pDevContext->PortController, hardwareAlerts, NumAlertsInReport);  
+                UcmTcpciPortControllerAlert(pDevContext->PortController, hardwareAlerts, NumAlertsInReport);
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! <<- UcmTcpciPortControllerAlert --- !!!!!!!!! ");
             }
         } else {
@@ -526,13 +524,9 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         }
         ++NumAlertReports;
     }
-    if ((IoctlAndIsrSyncCounter=InterlockedDecrement(&pDevContext->IoctlAndIsrSyncCounter)) != 0) {
-        DBG_IOCTL_CMD_DUMP("ISR: InterlockedDecrement(&InterlockedDecrement->I2C_Lock) = %d", IoctlAndIsrSyncCounter);
-        DBG_IOCTL_CMD_DUMP("ISR_DONE: IOCTL pending, Setting event ...");
-        KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
-    } else {
-        DBG_IOCTL_CMD_DUMP("ISR: InterlockedDecrement(&InterlockedDecrement->I2C_Lock) = %d", IoctlAndIsrSyncCounter);
-    }
+
+    DBG_IOCTL_CMD_DUMP("ISR_DONE: IOCTL pending, Setting event ...");
+    KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
     DBG_IOCTL_METHOD_END_WITH_PARAMS("interruptRecognized = %d -----------------------------------", interruptRecognized);
     return interruptRecognized;
 }
@@ -556,9 +550,7 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
     NTSTATUS        ntStatus = STATUS_SUCCESS;
     VOID           *pBuffer;
     I2C_IO_CMD_t   *pI2CIOCmd;
-    LONG      IoctlAndIsrSyncCounter;
 
-    
     DBG_IOCTL_METHOD_BEG_WITH_PARAMS("%s", Dbg_GetIOCTLName(IoControlCode));
     UNREFERENCED_PARAMETER(InputBufferLength);
     UNREFERENCED_PARAMETER(OutputBufferLength);
@@ -568,15 +560,12 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
     pI2CIOCmd = pDevContext->IOCTL_I2CCmds;
     DBG_IOCTL_CMD_DUMP("+++ WDFREQUEST: 0x%p, Ioctl:%s", hRequest, Dbg_GetIOCTLName(IoControlCode));
 
-    if ((IoctlAndIsrSyncCounter = InterlockedIncrement(&pDevContext->IoctlAndIsrSyncCounter)) == 1) {
-        /* No ISR command is pending, start IOCTL sequence */
-        DBG_IOCTL_CMD_DUMP("IOCTL: InterlockedIncrement(&pDevContext->I2C_Lock) = %d", IoctlAndIsrSyncCounter);
-    }
-    else {
-        DBG_IOCTL_CMD_DUMP("IOCTL: InterlockedIncrement(&pDevContext->I2C_Lock) = %d, waiting for event", IoctlAndIsrSyncCounter);
-        ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
-        KeClearEvent(&pDevContext->IoctlAndIsrSyncEvent);
-        DBG_IOCTL_CMD_DUMP("IOCTL: waiting for DEVICE LOCK done");
+    ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
+    if (!NT_SUCCESS(ntStatus))
+    {
+        DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
+        WdfRequestComplete(hRequest, ntStatus);
+        return;
     }
 
     switch (IoControlCode) {
@@ -591,7 +580,7 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
             }
 
             break;
-        case IOCTL_UCMTCPCI_PORT_CONTROLLER_GET_CONTROL:    
+        case IOCTL_UCMTCPCI_PORT_CONTROLLER_GET_CONTROL:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveOutputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_GET_CONTROL_OUT_PARAMS), &pBuffer, NULL))) {
                 // get control
                 PUCMTCPCI_PORT_CONTROLLER_GET_CONTROL_OUT_PARAMS params = (PUCMTCPCI_PORT_CONTROLLER_GET_CONTROL_OUT_PARAMS)pBuffer;
@@ -605,20 +594,25 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_CONTROL:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_CONTROL_IN_PARAMS), &pBuffer, NULL))) {
-                switch (((UCMTCPCI_PORT_CONTROLLER_SET_CONTROL_IN_PARAMS *)pBuffer)->ControlType) {
-                    case UcmTcpciPortControllerTcpcControl:    /* TCPC_CONTROL - First write */
+                PUCMTCPCI_PORT_CONTROLLER_SET_CONTROL_IN_PARAMS pParams = (UCMTCPCI_PORT_CONTROLLER_SET_CONTROL_IN_PARAMS *)pBuffer;
+                switch (pParams->ControlType) {
+                    case UcmTcpciPortControllerTcpcControl:
+                        DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONTROL TCPC_CONTROL %02x", pParams->TCPCControl.AsUInt8);
                         if (pDevContext->GPIO_hTarget != WDF_NO_HANDLE) {
 //                             GPIO_PlugOrientation_Set(pDevContext, *(TCPC_PHY_TCPC_CONTROL_t *)(&((UCMTCPCI_PORT_CONTROLLER_SET_CONTROL_IN_PARAMS *)pBuffer)->TCPCControl));
                         }
                         // set control
                         break;
-                    case UcmTcpciPortControllerRoleControl: {    /* ROLE_CONTROL - Second write */ 
+                    case UcmTcpciPortControllerRoleControl: {
+                        DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONTROL ROLE_CONTROL %02x", pParams->RoleControl.AsUInt8);
                         break;
                     }
-                    case UcmTcpciPortControllerPowerControl: { /* POWER_CONTROL - Third write */
+                    case UcmTcpciPortControllerPowerControl: {
+                        DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONTROL POWER_CONTROL %02x", pParams->PowerControl.AsUInt8);
                         break;
                     }
                     case UcmTcpciPortControllerFaultControl:
+                        DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONTROL FAULT_CONTROL %02x", pParams->FaultControl.AsUInt8);
                         break;
                     default:
                         DBG_IOCTL_PRINT_ERROR("Invalid control register type.");
@@ -628,10 +622,13 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_IN_PARAMS), &pBuffer, NULL))) {
+                PUCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_IN_PARAMS)pBuffer;
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_TRANSMIT %02x", pParams->Transmit.AsUInt8);
             }
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_BUFFER:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_BUFFER_IN_PARAMS), &pBuffer, NULL))) {
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_TRANSMIT_BUFFER");
                 if ((((UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_BUFFER_IN_PARAMS *)pBuffer)->TransmitBuffer.TransmitByteCount + sizeof(((UCMTCPCI_PORT_CONTROLLER_SET_TRANSMIT_BUFFER_IN_PARAMS *)pBuffer)->TransmitBuffer.TransmitByteCount)) > TCPCI_I2C_DATA_BUFFER_SIZE) {
                     ntStatus = STATUS_INVALID_BUFFER_SIZE;
                 } else {
@@ -641,21 +638,28 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_RECEIVE_DETECT:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_RECEIVE_DETECT_IN_PARAMS), &pBuffer, NULL))) {
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_RECEIVE_DETECT");
                 // set Rx
             }
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_CONFIG_STANDARD_OUTPUT:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_CONFIG_STANDARD_OUTPUT_IN_PARAMS), &pBuffer, NULL))) {
+                PUCMTCPCI_PORT_CONTROLLER_SET_CONFIG_STANDARD_OUTPUT_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_CONFIG_STANDARD_OUTPUT_IN_PARAMS)pBuffer;
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONFIG_STANDARD_OUTPUT %02x", pParams->ConfigStandardOutput.AsUInt8);
                 // SET config
             }
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_COMMAND:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS), &pBuffer, NULL))) {
+                PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS)pBuffer;
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_COMMAND %02x", pParams->Command);
                 // SET command
             }
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO_IN_PARAMS), &pBuffer, NULL))) {
+                PUCMTCPCI_PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO_IN_PARAMS)pBuffer;
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO %02x", pParams->MessageHeaderInfo.AsUInt8);
                 // SET msg header
             }
             break;
@@ -670,10 +674,7 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
         WdfRequestComplete(hRequest, ntStatus);
     }
 
-    if ((IoctlAndIsrSyncCounter = InterlockedDecrement(&pDevContext->IoctlAndIsrSyncCounter)) == 1) {    /* Passive ISR pending? */
-        DBG_IOCTL_CMD_DUMP("IOCTL_DONE: ISR pending Setting event ...");
-        KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
-    }
+    KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
 
     DBG_IOCTL_METHOD_END_WITH_PARAMS("%s", Dbg_GetIOCTLName(IoControlCode));
 }
