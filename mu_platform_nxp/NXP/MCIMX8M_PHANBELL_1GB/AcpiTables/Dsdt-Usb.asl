@@ -13,13 +13,45 @@
 */
 
 //
-// iMX8M USB port 1 is a USB 3.0 xHCI controller
+// iMX8M USB port 1 is a USB 3.0 xHCI controller - OTG USB type C port
 //
-// iMX8M USB port 2 is a USB 3.0 xHCI controller
+// iMX8M USB port 2 is a USB 3.0 xHCI controller - Host only USB type A port
 //
 // TODO add OTG support once PEP driver is available which is a requirement
 // of the UFX/URS framework
 //
+
+Device (URS1)
+{
+  Name (_HID, "NXPI011C") // NXPI: Windows requires 4 character vendor IDs
+  Name (_CID, "PNP0CA1")  // Synopsis dual-role device
+  Name (_UID, 0x0)
+  Name (_CCA, 0x0)    // XHCI is not coherent
+
+  Name (_CRS, ResourceTemplate() {
+    Memory32Fixed(ReadWrite, 0x38100000, 0x10000)
+  })
+
+  Device (USB1)
+  {
+    Name (_ADR, 0)
+    Name (_CRS, ResourceTemplate() {
+      // Controller interrupt
+      Interrupt(ResourceConsumer, Level, ActiveHigh, Exclusive) {72}
+    })
+  }
+
+  Device (UFN1)
+  {
+    Name (_ADR, 1)
+    Name (_CRS, ResourceTemplate() {
+      // interrupt
+      Interrupt(ResourceConsumer, Level, ActiveHigh, Exclusive) {72}
+    })
+  }
+}
+
+#if 0 == 1
 
 Device (USB1)
 {
@@ -48,6 +80,7 @@ Device (USB1)
   Method(_PS3, 0x0, Serialized) {
   }
 }
+#endif 
 
 Device (USB2)
 {
