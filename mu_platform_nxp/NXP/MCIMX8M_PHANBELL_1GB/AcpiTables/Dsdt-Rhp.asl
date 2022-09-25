@@ -99,6 +99,13 @@ Device(RHPX)
     GpioIO(Shared, PullNone, 0, 0, IoRestrictionNone, "\\_SB.GPIO", 0, ResourceConsumer, , ) { 14 } // 0 * 32 + 14
     GpioInt(Edge, ActiveBoth, Shared, PullNone, 0, "\\_SB.GPIO",) { 14 }
 
+#if 1 == 0
+//TODO: remove this after debugging USB TCPC
+    // GPIO3_IO00 PAD_NAND_ALE (USB TCPC interrupt)
+    GpioIO(Shared, PullNone, 0, 0, IoRestrictionNone, "\\_SB.GPIO", 0, ResourceConsumer, , ) { 64 } // 2 * 32 + 0
+    GpioInt(Edge, ActiveBoth, Shared, PullNone, 0, "\\_SB.GPIO",) { 64 }
+#endif
+
     // GPIO3_IO02 PAD_NAND_CE1_B (ECSPI1_SS1) - J15 pin 26
     GpioIO(Shared, PullNone, 0, 0, IoRestrictionNone, "\\_SB.GPIO", 0, ResourceConsumer, , ) { 66 } // 2 * 32 + 2
     GpioInt(Edge, ActiveBoth, Shared, PullNone, 0, "\\_SB.GPIO",) { 66 }
