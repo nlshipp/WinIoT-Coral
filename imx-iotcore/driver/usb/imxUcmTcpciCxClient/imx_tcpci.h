@@ -44,6 +44,7 @@
 typedef struct _DEV_CONTEXT {
     WDFDEVICE                         Device;                                       /* Device handle                                                           */
     UCMTCPCIPORTCONTROLLER            PortController;                               /* Port controller handle                                                  */
+    UCMTCPCI_PORT_CONTROLLER_POWER_STATUS PowerStatus;                              /* USB Power Status shadow */
     WDFIOTARGET                       I2C_hTarget;                                  /* I2C target handle                                                       */
     LARGE_INTEGER                     I2C_ConnectionId;                             /* I2C connection ID                                                       */
     WDFIOTARGET                       GPIO_hTarget;                                 /* GCPIO target handle                                                     */

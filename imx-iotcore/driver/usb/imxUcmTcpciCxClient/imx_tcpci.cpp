@@ -23,6 +23,7 @@
 #pragma alloc_text (PAGE, OnInterruptPassiveIsr)
 #endif
 
+PDEV_CONTEXT                 gDevContext = 0;
 /*++
 Routine Description:
     DriverEntry initializes the driver and is the first routine called by the system after the driver is loaded. DriverEntry specifies the other entry
@@ -114,7 +115,10 @@ NTSTATUS EvtDeviceAdd(_In_ WDFDRIVER hDriver, _Inout_ PWDFDEVICE_INIT pDeviceIni
             break;
         }
         pDevContext = DeviceGetContext(hDevice);
+        gDevContext = pDevContext;
         pDevContext->Device  = hDevice;                                                /* Save the device handle in the context. */
+        pDevContext->PowerStatus.AsUInt8 = 0;
+
         UCMTCPCI_DEVICE_CONFIG_INIT(&Config);
         if (!NT_SUCCESS(ntStatus = UcmTcpciDeviceInitialize(hDevice, &Config))) {      /* Register this device with UcmTcpciCx. */
             DBG_PRINT_ERROR_WITH_STATUS(ntStatus, "[WDFDEVICE: 0x%p] UcmTcpciDeviceInitialize failed", hDevice);
@@ -179,6 +183,8 @@ NTSTATUS GetStatusFrom5150(_In_ WDFDEVICE hDevice,
     pPowerStatus->AsUInt8 = 0;
     pFaultStatus->AsUInt8 = 0;
 
+    pPowerStatus->VbusPresentDetectionEnabled = pDevContext->PowerStatus.VbusPresentDetectionEnabled;
+
     if (ccStatus.B.CC_POLARITY == 0) // no cable
     {
         pCCStatus->Looking4Connection = 1;
@@ -187,31 +193,34 @@ NTSTATUS GetStatusFrom5150(_In_ WDFDEVICE hDevice,
         pCCStatus->CC1State = 0; // SRC.Open(open, Rp)
 
         pPowerStatus->SourcingVbus = 1;
-        pPowerStatus->VbusPresentDetectionEnabled = 1;
         pPowerStatus->VbusPresent = ccStatus.B.VBUS_DETECT;
     }
-    else if (ccStatus.B.PORT_ATTACH_STATUS == 1)  // DFP attached (set to HOST mode)
+    else if (ccStatus.B.PORT_ATTACH_STATUS == 1)  // DEVICE mode - DFP attached
     {
         // BUGBUG: ignore CC polarity for now
         pCCStatus->Looking4Connection = 0;
-        pCCStatus->ConnectResult = 0;  // Rp presented
-        pCCStatus->CC2State = 0; // SRC.Open(open, Rp)
-        pCCStatus->CC1State = 2; // SRC.Rd(within the vRd range)
-
-        pPowerStatus->SourcingVbus = 1;
-        pPowerStatus->VbusPresentDetectionEnabled = 1;
-        pPowerStatus->VbusPresent = ccStatus.B.VBUS_DETECT;
-    }
-    else // if (ccStatus.B.PORT_ATTACH_STATUS == 0)  // UFP attached (set to DEVICE mode)
-    {
-        pCCStatus->Looking4Connection = 0;
-        pCCStatus->ConnectResult = 1;  // Rp presented
-        pCCStatus->CC2State = 0; // SNK.Open(below maximum vRa)
+        pCCStatus->ConnectResult = 1;  // Rd presented
         pCCStatus->CC1State = 1; // SNK.Default(above minimum vRd - Connect)
+        pCCStatus->CC2State = 0; // SNK.Open(below maximum vRa)
 
-        pPowerStatus->VbusPresentDetectionEnabled = 1;
         pPowerStatus->VbusPresent = ccStatus.B.VBUS_DETECT;
         pPowerStatus->SinkingVbus = 1;
+    }
+    else // if (ccStatus.B.PORT_ATTACH_STATUS == 2)  // HOST mode - UFP attached
+    {
+        // TODO: set CC1State according to resistor detected.
+        pCCStatus->Looking4Connection = 0;
+        pCCStatus->ConnectResult = 0;  // Rp presented
+        pCCStatus->CC1State = 2; // SRC.Rd(within the vRd range)
+        pCCStatus->CC2State = 0; // SRC.Open(open, Rp)
+
+        pPowerStatus->SourcingVbus = 1;
+        pPowerStatus->VbusPresent = 1;  // PTN5150 doesn't self detect VBus in host mode
+    }
+
+    if (!pPowerStatus->VbusPresentDetectionEnabled)
+    {
+        pPowerStatus->VbusPresent = 0;
     }
 
     return ntStatus;
@@ -435,10 +444,14 @@ Return Value:
 
 #ifdef PTN5150
 
+UINT32 gServicingInterrupt = 0;
+UINT32 gSendingAlert = 0;
+
 BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ ULONG MessageID) {
     UNREFERENCED_PARAMETER(MessageID);
     PAGED_CODE();
 
+    gServicingInterrupt = 1;
     NTSTATUS                                ntStatus;
     PDEV_CONTEXT                            pDevContext;
     BOOLEAN                                 interruptRecognized = FALSE;
@@ -461,6 +474,7 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     if (!NT_SUCCESS(ntStatus))
     {
         DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
+        gServicingInterrupt = 0;
         return FALSE;
     }
 
@@ -516,7 +530,9 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         if (NT_SUCCESS(ntStatus)) {
             if (NumAlertsInReport) {
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! ->> UcmTcpciPortControllerAlert +++ !!!!!!!!! ");
+                gSendingAlert = 1;
                 UcmTcpciPortControllerAlert(pDevContext->PortController, hardwareAlerts, NumAlertsInReport);
+                gSendingAlert = 0;
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! <<- UcmTcpciPortControllerAlert --- !!!!!!!!! ");
             }
         } else {
@@ -528,6 +544,7 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     DBG_IOCTL_CMD_DUMP("ISR_DONE: IOCTL pending, Setting event ...");
     KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
     DBG_IOCTL_METHOD_END_WITH_PARAMS("interruptRecognized = %d -----------------------------------", interruptRecognized);
+    gServicingInterrupt = 0;
     return interruptRecognized;
 }
 
@@ -605,6 +622,15 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
                         break;
                     case UcmTcpciPortControllerRoleControl: {
                         DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_CONTROL ROLE_CONTROL %02x", pParams->RoleControl.AsUInt8);
+                        if ((pParams->RoleControl.CC1 == 1) && (pParams->RoleControl.CC2 == 1))
+                        {
+                            // Present Rp - Host mode
+                            pParams->RoleControl.RpValue;  // current setting?
+                        }
+                        else if ((pParams->RoleControl.CC1 == 2) && (pParams->RoleControl.CC2 == 2))
+                        {
+                            // Present Rd - Device mode
+                        }
                         break;
                     }
                     case UcmTcpciPortControllerPowerControl: {
@@ -651,9 +677,62 @@ VOID EvtIoDeviceControl(_In_ WDFQUEUE hQueue, _In_ WDFREQUEST hRequest, _In_ siz
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_COMMAND:
             if (NT_SUCCESS(ntStatus = WdfRequestRetrieveInputBuffer(hRequest, sizeof(UCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS), &pBuffer, NULL))) {
-                PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS)pBuffer;
-                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_COMMAND %02x", pParams->Command);
                 // SET command
+                PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS pParams = (PUCMTCPCI_PORT_CONTROLLER_SET_COMMAND_IN_PARAMS)pBuffer;
+                bool sendAlert = false;
+                DBG_IOCTL_PRINT_INFO("IOCTL: PORT_CONTROLLER_SET_COMMAND %02x", pParams->Command);
+
+                switch (pParams->Command)
+                {
+                case UcmTcpciPortControllerCommandEnterLowPower:
+                    break;
+
+                case UcmTcpciPortControllerCommandDisableVbusDetect:
+                    pDevContext->PowerStatus.VbusPresentDetectionEnabled = 0;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandEnableVbusDetect:
+                    pDevContext->PowerStatus.VbusPresentDetectionEnabled = 1;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandDisableSinkVbus:
+                    pDevContext->PowerStatus.SinkingVbus = 0;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandEnableSinkVbus:
+                    pDevContext->PowerStatus.SinkingVbus = 1;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandDisableSourceVbus:
+                    pDevContext->PowerStatus.SourcingVbus = 0;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandSourceVbusDefaultVoltage:
+                    pDevContext->PowerStatus.SourcingVbus = 1;
+                    sendAlert = true;
+                    break;
+
+                case UcmTcpciPortControllerCommandSourceVbusHighVoltage:
+                case UcmTcpciPortControllerCommandLook4Connection:
+                case UcmTcpciPortControllerCommandRxOneMore:
+                case UcmTcpciPortControllerCommandExitLowPower:
+                default:
+                    break;
+                }
+
+                if (sendAlert)
+                {
+                    UCMTCPCI_PORT_CONTROLLER_ALERT_DATA alertData;
+                    UCMTCPCI_PORT_CONTROLLER_ALERT_DATA_INIT(&alertData);
+                    alertData.AlertType = UcmTcpciPortControllerAlertPowerStatus;
+                    alertData.PowerStatus = pDevContext->PowerStatus;
+                    UcmTcpciPortControllerAlert(pDevContext->PortController, &alertData, 1);
+                }
             }
             break;
         case IOCTL_UCMTCPCI_PORT_CONTROLLER_SET_MESSAGE_HEADER_INFO:
