@@ -455,10 +455,10 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     NTSTATUS                                ntStatus;
     PDEV_CONTEXT                            pDevContext;
     BOOLEAN                                 interruptRecognized = FALSE;
+    BOOLEAN                                 lockHeld = FALSE;
     int                                     NumAlertReports = 0;
     size_t                                  NumAlertsInReport;
     UCMTCPCI_PORT_CONTROLLER_ALERT_DATA     alertData;
-//    UCMTCPCI_PORT_CONTROLLER_RECEIVE_BUFFER receiveBuffer;
     UCMTCPCI_PORT_CONTROLLER_ALERT_DATA     hardwareAlerts[ISR_MAX_ALERTS_TO_REPORT];  /* UcmTcpciCx expects the information on all of the alerts firing presently. */
     I2C_IO_CMD_t                            I2C_Cmd;
 
@@ -470,14 +470,6 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     DBG_IOCTL_METHOD_BEG_WITH_PARAMS("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     /* Process the alerts as long as there are bits set in the alert register. Set a maximum number of alerts to process in this loop. If the hardware is messed up and we're unable */
     /* to quiesce the interrupt by writing to the alert register, then we don't want to be stuck in an infinite loop. */
-    ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
-    if (!NT_SUCCESS(ntStatus))
-    {
-        DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
-        gServicingInterrupt = 0;
-        return FALSE;
-    }
-
     while (NumAlertReports <= ISR_MAX_ALERTS_TO_PROCESS) {
         // Reading INT_STATUS and CABLE_INT_STATUS clears interrupt flags
         if (!NT_SUCCESS(ntStatus = RdRegSync(TCPC_PHY_INT_STATUS, &(intStatus.R), IMX_ISR))) {
@@ -490,6 +482,16 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         if ((intStatus.R == 0) && (cableIntStatus.R == 0)) {  /* If there are no bits set in the alert register, we should not service this interrupt. */
             break;
         }
+
+        ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
+        if (!NT_SUCCESS(ntStatus))
+        {
+            DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
+            gServicingInterrupt = 0;
+            return FALSE;
+        }
+        lockHeld = TRUE;
+
         interruptRecognized = TRUE;         /* Since there are bits set in the alert register, we can safely assume that the interrupt is ours to process. */
         NumAlertsInReport = 0;
         do {
@@ -530,9 +532,15 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         if (NT_SUCCESS(ntStatus)) {
             if (NumAlertsInReport) {
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! ->> UcmTcpciPortControllerAlert +++ !!!!!!!!! ");
+
+                DBG_IOCTL_CMD_DUMP("ISR: releasing lock, sending alerts ...");
+                KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
+                lockHeld = FALSE;
+
                 gSendingAlert = 1;
                 UcmTcpciPortControllerAlert(pDevContext->PortController, hardwareAlerts, NumAlertsInReport);
                 gSendingAlert = 0;
+
                 DBG_IOCTL_PRINT_INFO("!!!!!!!!! <<- UcmTcpciPortControllerAlert --- !!!!!!!!! ");
             }
         } else {
@@ -541,8 +549,12 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         ++NumAlertReports;
     }
 
-    DBG_IOCTL_CMD_DUMP("ISR_DONE: IOCTL pending, Setting event ...");
-    KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);                                      /* Wake up passive ISR */
+    if (lockHeld)
+    {
+        DBG_IOCTL_CMD_DUMP("ISR: releasing lock, sending alerts ...");
+        KeSetEvent(&pDevContext->IoctlAndIsrSyncEvent, 0, FALSE);     /* Wake up IOCTL */
+        lockHeld = FALSE;
+    }
     DBG_IOCTL_METHOD_END_WITH_PARAMS("interruptRecognized = %d -----------------------------------", interruptRecognized);
     gServicingInterrupt = 0;
     return interruptRecognized;
