@@ -26,7 +26,6 @@ Device(USBC)
             // \_SB.I2C and \_SB.GPIO are paths to predefined I2C and GPIO controller instances.
             //  GPIO3_IO00 NAND_ALE
             I2CSerialBus(0x3D, ControllerInitiated, 400000, AddressingMode7Bit, "\\_SB.I2C3")
-//            GpioIO(Shared, PullNone, 0, 0, IoRestrictionNone, "\\_SB.GPIO", 0, ResourceConsumer, , ) { 64 } // 2 * 32 + 0
             GpioInt(Level, ActiveLow, Exclusive, PullNone, 0, "\\_SB.GPIO",) { 64 }
         })
         Return(RBUF)
