@@ -471,6 +471,15 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
     /* Process the alerts as long as there are bits set in the alert register. Set a maximum number of alerts to process in this loop. If the hardware is messed up and we're unable */
     /* to quiesce the interrupt by writing to the alert register, then we don't want to be stuck in an infinite loop. */
     while (NumAlertReports <= ISR_MAX_ALERTS_TO_PROCESS) {
+        ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
+        if (!NT_SUCCESS(ntStatus))
+        {
+            DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
+            gServicingInterrupt = 0;
+            return FALSE;
+        }
+        lockHeld = TRUE;
+
         // Reading INT_STATUS and CABLE_INT_STATUS clears interrupt flags
         if (!NT_SUCCESS(ntStatus = RdRegSync(TCPC_PHY_INT_STATUS, &(intStatus.R), IMX_ISR))) {
             break;
@@ -482,15 +491,6 @@ BOOLEAN OnInterruptPassiveIsr(_In_ WDFINTERRUPT hPortControllerInterrupt, _In_ U
         if ((intStatus.R == 0) && (cableIntStatus.R == 0)) {  /* If there are no bits set in the alert register, we should not service this interrupt. */
             break;
         }
-
-        ntStatus = KeWaitForSingleObject(&pDevContext->IoctlAndIsrSyncEvent, Executive, KernelMode, FALSE, NULL);
-        if (!NT_SUCCESS(ntStatus))
-        {
-            DBG_IOCTL_PRINT_ERROR_WITH_STATUS(ntStatus, "KeWaitForSingleObject failed");
-            gServicingInterrupt = 0;
-            return FALSE;
-        }
-        lockHeld = TRUE;
 
         interruptRecognized = TRUE;         /* Since there are bits set in the alert register, we can safely assume that the interrupt is ours to process. */
         NumAlertsInReport = 0;
