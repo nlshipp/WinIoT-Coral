@@ -83,6 +83,7 @@ Device (URS1)
       Interrupt(ResourceConsumer, Level, ActiveHigh, Exclusive) {72}
     })
 
+#if 1 == 0
     // Device Specific Method takes 4 args:
     //  Arg0 : Buffer containing a UUID [16 bytes]
     //  Arg1 : Integer containing the Revision ID
@@ -111,7 +112,7 @@ Device (URS1)
             switch (ToInteger (Arg1)) {
               // Revision 1: functions {0,9} supported
               case (1) {
-                Return (0x201);
+                Return (Buffer() { 0x01, 0x02 });
               }
               default {
                 Return (Buffer () { 0x01 });
@@ -142,7 +143,7 @@ Device (URS1)
               Return (Buffer () { 0x0 });
             }
 
-          // Function 9: Get power down scale
+          // Function 9: Get power down scale (25MHz / 16k)
           case (9) {
               Return (0x618);
             }
@@ -169,6 +170,7 @@ Device (URS1)
       }
       Return (0x0);
     } // _DSM
+#endif
 
     Device( RHUB) { 
       Name( _ADR, 0x00000000) // Value of 0 is reserved for root HUB
@@ -202,37 +204,6 @@ Device (URS1)
   }
 }
 
-#if 0 == 1
-
-Device (USB1)
-{
-  Name (_HID, "NXPI010C") // NXPI: Windows requires 4 character vendor IDs
-  Name (_CID, "PNP0D10")
-  Name (_UID, 0x0)
-  Name (_CCA, 0x0)    // XHCI is not coherent
-
-  OperationRegion (USBH, SystemMemory, 0x38100000, 0x10000)
-  Field (USBH, DWordAcc, NoLock, Preserve)
-  {
-    Offset(0x0000C110),
-    GCTL, 32, // USB1_GCTL
-  }
-
-  Method(_CRS, 0x0, Serialized) {
-    Name(RBUF, ResourceTemplate() {
-      Memory32Fixed(ReadWrite, 0x38100000, 0x10000)
-      Interrupt(ResourceConsumer, Level, ActiveHigh, Exclusive) {72}
-      })
-    Return(RBUF)
-  }
-  Method(_PS0, 0x0, Serialized) {
-    Store(0x30c11004, GCTL)
-  }
-  Method(_PS3, 0x0, Serialized) {
-  }
-}
-#endif 
-
 Device (USB2)
 {
   Name (_HID, "NXPI010C")
@@ -254,8 +225,10 @@ Device (USB2)
       })
     Return(RBUF)
   }
+
   Method(_PS0, 0x0, Serialized) {
-    Store(0x30c11004, GCTL)
+    // Set to host mode
+    Store(0x00111004, GCTL)
   }
   Method(_PS3, 0x0, Serialized) {
   }
